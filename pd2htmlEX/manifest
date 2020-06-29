@@ -18,7 +18,7 @@
 """
 <!DOCTYPE html>
 <!-- Created by pdf2htmlEX (https://github.com/coolwanglu/pdf2htmlex) -->
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
 <head>
 <meta charset="utf-8"/>
 <meta name="generator" content="pdf2htmlEX"/>
@@ -32,6 +32,9 @@
 
 # fancy CSS styles - Optional
 @fancy.min.css
+
+# custom viewer.css
+@viewer.css
 
 # PDF specific CSS styles - Do not modify
 $css
@@ -55,6 +58,11 @@ $css
 # });
 #TEST_IGNORE_BEGIN
 @pdf2htmlEX.min.js
+
+#custom viewer.js
+@viewer.js
+#
+
 """
 <script>
 try{
@@ -74,6 +82,74 @@ try{
 """
 
 #############
+# The navbar
+# navbar for page navigating
+"""
+<div class="toolbar">
+  <div id="toolbarContainer">
+    <div id="toolbarViewer">
+      <div id="toolbarViewerLeft">
+"""
+        #<button id="sidebarToggle" class="toolbarButton" title="切换侧栏" tabindex="11" data-l10n-id="toggle_sidebar">
+        #  <span data-l10n-id="toggle_sidebar_label">切换侧栏</span>
+        #</button>
+"""
+        <div class="toolbarButtonSpacer"></div>
+        <button id="viewFind" class="toolbarButton hidden" title="在文档中查找" tabindex="12" data-l10n-id="findbar">
+          <span data-l10n-id="findbar_label">查找</span>
+        </button>
+        <div class="splitToolbarButton hiddenSmallView">
+          <button class="toolbarButton pageUp" title="上一页" id="previous" tabindex="13" data-l10n-id="previous" disabled="">
+            <span data-l10n-id="previous_label">上一页</span>
+          </button>
+          <div class="splitToolbarButtonSeparator"></div>
+          <button class="toolbarButton pageDown" title="下一页" id="next" tabindex="14" data-l10n-id="next">
+            <span data-l10n-id="next_label">下一页</span>
+          </button>
+        </div>
+        <input type="number" id="pageNumber" class="toolbarField pageNumber" title="页面" value="1" size="4" min="1" tabindex="15" data-l10n-id="page" autocomplete="off" max="12">
+          <span id="numPages" class="toolbarLabel">/ 12</span>
+      </div>
+      <div id="toolbarViewerMiddle">
+        <div class="splitToolbarButton">
+          <button id="zoomOut" class="toolbarButton zoomOut" title="缩小" tabindex="21" data-l10n-id="zoom_out">
+            <span data-l10n-id="zoom_out_label">缩小</span>
+          </button>
+          <div class="splitToolbarButtonSeparator"></div>
+          <button id="zoomIn" class="toolbarButton zoomIn" title="放大" tabindex="22" data-l10n-id="zoom_in">
+            <span data-l10n-id="zoom_in_label">放大</span>
+          </button>
+        </div>
+        <span id="scaleSelectContainer" class="dropdownToolbarButton">
+          <select id="scaleSelect" title="缩放" tabindex="23" data-l10n-id="zoom">
+            <option id="pageAutoOption" title="" value="auto" selected="selected" data-l10n-id="page_scale_auto">自动缩放</option>
+            <option id="pageActualOption" title="" value="page-actual" data-l10n-id="page_scale_actual">实际大小</option>
+            <option id="pageFitOption" title="" value="page-fit" data-l10n-id="page_scale_fit">适合页面</option>
+            <option id="pageWidthOption" title="" value="page-width" data-l10n-id="page_scale_width">适合页宽</option>
+            <option id="customScaleOption" title="" value="custom" disabled="disabled" hidden="true">140%</option>
+            <option title="" value="0.5" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 50 }">50%</option>
+            <option title="" value="0.75" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 75 }">75%</option>
+            <option title="" value="1" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 100 }">100%</option>
+            <option title="" value="1.25" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 125 }">125%</option>
+            <option title="" value="1.5" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 150 }">150%</option>
+            <option title="" value="2" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 200 }">200%</option>
+            <option title="" value="3" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 300 }">300%</option>
+            <option title="" value="4" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 400 }">400%</option>
+          </select>
+        </span>
+      </div>
+    </div>
+    <div id="loadingBar" class="hidden" style="width: calc(100% - 15px);">
+      <div class="progress" style="height: 100%; width: 100%;">
+        <div class="glimmer">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+
+#############
 # The sidebar
 # By default this is hidden, pdf2htmlEX.js will add the 'opened' class if it is not empty
 # You can add a class 'opened' here if you want it always opened or you don't use pdf2htmlEX.js
@@ -82,7 +158,7 @@ try{
 
 #TEST_IGNORE_BEGIN
 """
-<div id="sidebar">
+<div id="sidebar" style="padding-top: 33px">
 """
 # container of outlines
 """
@@ -99,7 +175,7 @@ $outline
 # The container of PDF pages
 # check base.css for an example and requirements of its CSS styles
 """
-<div id="page-container">
+<div id="page-container" style="padding-top: 33px">
 """
 $pages
 """
