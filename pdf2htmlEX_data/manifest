@@ -23,18 +23,25 @@
 <meta charset="utf-8"/>
 <meta name="generator" content="pdf2htmlEX"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=2.0,maximum-scale=1.0,user-scalable=no" />
 """
 
 #############
 # Styles 
 # base CSS styles - Do not modify
-@base.min.css
+@base.css
 
 # fancy CSS styles - Optional
-@fancy.min.css
+@fancy.css
 
-# custom viewer.css
-@viewer.css
+"""
+<style>
+  body, #page-container, nav.fixed-nav-bar {
+    background-color: #404040; /* set what ever color you like the navbar will adopt it */
+    background-image: url('data:image/png;base64,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');
+  }
+</style>
+"""
 
 # PDF specific CSS styles - Do not modify
 $css
@@ -57,11 +64,7 @@ $css
 #   'key_handler' : false 
 # });
 #TEST_IGNORE_BEGIN
-@pdf2htmlEX.min.js
-
-#custom viewer.js
-@viewer.js
-#
+@pdf2htmlEX.js
 
 """
 <script>
@@ -70,6 +73,9 @@ try{
 }catch(e){}
 </script>
 """
+# must be included after @pdf2htmlEX.min.js and initialization of pdf2htmlEX.Viewer
+@navbar.js
+
 #TEST_IGNORE_END
 
 
@@ -79,74 +85,56 @@ try{
 <title></title>
 </head>
 <body>
-"""
-
-#############
-# The navbar
-# navbar for page navigating
-"""
-<div class="toolbar">
-  <div id="toolbarContainer">
-    <div id="toolbarViewer">
-      <div id="toolbarViewerLeft">
-"""
-        #<button id="sidebarToggle" class="toolbarButton" title="切换侧栏" tabindex="11" data-l10n-id="toggle_sidebar">
-        #  <span data-l10n-id="toggle_sidebar_label">切换侧栏</span>
-        #</button>
-"""
-        <div class="toolbarButtonSpacer"></div>
-        <button id="viewFind" class="toolbarButton hidden" title="在文档中查找" tabindex="12" data-l10n-id="findbar">
-          <span data-l10n-id="findbar_label">查找</span>
-        </button>
-        <div class="splitToolbarButton hiddenSmallView">
-          <button class="toolbarButton pageUp" title="上一页" id="previous" tabindex="13" data-l10n-id="previous" disabled="">
-            <span data-l10n-id="previous_label">上一页</span>
-          </button>
-          <div class="splitToolbarButtonSeparator"></div>
-          <button class="toolbarButton pageDown" title="下一页" id="next" tabindex="14" data-l10n-id="next">
-            <span data-l10n-id="next_label">下一页</span>
-          </button>
-        </div>
-        <input type="number" id="pageNumber" class="toolbarField pageNumber" title="页面" value="1" size="4" min="1" tabindex="15" data-l10n-id="page" autocomplete="off" max="12">
-          <span id="numPages" class="toolbarLabel">/ 12</span>
-      </div>
-      <div id="toolbarViewerMiddle">
-        <div class="splitToolbarButton">
-          <button id="zoomOut" class="toolbarButton zoomOut" title="缩小" tabindex="21" data-l10n-id="zoom_out">
-            <span data-l10n-id="zoom_out_label">缩小</span>
-          </button>
-          <div class="splitToolbarButtonSeparator"></div>
-          <button id="zoomIn" class="toolbarButton zoomIn" title="放大" tabindex="22" data-l10n-id="zoom_in">
-            <span data-l10n-id="zoom_in_label">放大</span>
-          </button>
-        </div>
-        <span id="scaleSelectContainer" class="dropdownToolbarButton">
-          <select id="scaleSelect" title="缩放" tabindex="23" data-l10n-id="zoom">
-            <option id="pageAutoOption" title="" value="auto" selected="selected" data-l10n-id="page_scale_auto">自动缩放</option>
-            <option id="pageActualOption" title="" value="page-actual" data-l10n-id="page_scale_actual">实际大小</option>
-            <option id="pageFitOption" title="" value="page-fit" data-l10n-id="page_scale_fit">适合页面</option>
-            <option id="pageWidthOption" title="" value="page-width" data-l10n-id="page_scale_width">适合页宽</option>
-            <option id="customScaleOption" title="" value="custom" disabled="disabled" hidden="true">140%</option>
-            <option title="" value="0.5" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 50 }">50%</option>
-            <option title="" value="0.75" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 75 }">75%</option>
-            <option title="" value="1" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 100 }">100%</option>
-            <option title="" value="1.25" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 125 }">125%</option>
-            <option title="" value="1.5" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 150 }">150%</option>
-            <option title="" value="2" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 200 }">200%</option>
-            <option title="" value="3" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 300 }">300%</option>
-            <option title="" value="4" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 400 }">400%</option>
-          </select>
-        </span>
-      </div>
-    </div>
-    <div id="loadingBar" class="hidden" style="width: calc(100% - 15px);">
-      <div class="progress" style="height: 100%; width: 100%;">
-        <div class="glimmer">
-        </div>
-      </div>
-    </div>
-  </div>
+<nav class="fixed-nav-bar">
+<ul class="left-menu">
+<li>
+<button tabindex="11" title="Toggle Sidebar" class="toolbarButton sidebarToggle hide" id="sidebarToggle"></button>
+</li>
+<li>
+<div class="splitToolbarButton">
+<button tabindex="12" id="previous" title="Previous Page (alt+pageUp)" class="toolbarButton pageUp" disabled=""></button>
+<div class="splitToolbarButtonSeparator"></div>
+<button tabindex="13" id="next" title="Next Page (alt+pageDown)" class="toolbarButton pageDown"></button>
 </div>
+</li>
+<li>
+<input id="pageNumber" class="toolbarField pageNumber" type="number" tabindex="14" min="1" size="4" value="1" max="">
+<span id="numPages" class="toolbarLabel"></span>
+</li>
+</ul>
+<ul class="right-menu">
+<li>
+<button tabindex="17" id="presentationMode" title="Switch to presentation mode" class="toolbarButton presentationMode"></button>
+</li>
+</ul>
+<ul class="middle-menu">
+<li>
+<div class="splitToolbarButton">
+<button tabindex="15" title="Zoom Out (ctrl-)" class="toolbarButton zoomOut" id="zoomOut"></button>
+<div class="splitToolbarButtonSeparator"></div>
+<button tabindex="16" title="Zoom In (ctrl+)" class="toolbarButton zoomIn" id="zoomIn"></button>
+</div>
+<span id="scaleRatio" class="scaleRatio">100%</span>
+<span id="scaleSelectContainer" class="dropdownToolbarButton">
+  <select id="scaleSelect" title="缩放" tabindex="23" data-l10n-id="zoom">
+    <option id="pageAutoOption" title="" value="auto" selected="selected" data-l10n-id="page_scale_auto">自动缩放</option>
+    <option id="pageActualOption" title="" value="page-actual" data-l10n-id="page_scale_actual">实际大小</option>
+    <option id="pageFitOption" title="" value="page-fit" data-l10n-id="page_scale_fit">适合页面</option>
+    <option id="pageWidthOption" title="" value="page-width" data-l10n-id="page_scale_width">适合页宽</option>
+    <option id="customScaleOption" title="" value="custom" disabled="disabled" hidden="true">90%</option>
+    <option title="" value="0.5" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 50 }">50%</option>
+    <option title="" value="0.75" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 75 }">75%</option>
+    <option title="" value="1" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 100 }">100%</option>
+    <option title="" value="1.25" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 125 }">125%</option>
+    <option title="" value="1.5" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 150 }">150%</option>
+    <option title="" value="2" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 200 }">200%</option>
+    <option title="" value="3" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 300 }">300%</option>
+    <option title="" value="4" data-l10n-id="page_scale_percent" data-l10n-args="{ &quot;scale&quot;: 400 }">400%</option>
+  </select>
+</span>
+</li>
+</ul>
+</nav>
 """
 
 #############
@@ -158,7 +146,7 @@ try{
 
 #TEST_IGNORE_BEGIN
 """
-<div id="sidebar" style="padding-top: 33px">
+<div id="sidebar">
 """
 # container of outlines
 """
@@ -175,7 +163,7 @@ $outline
 # The container of PDF pages
 # check base.css for an example and requirements of its CSS styles
 """
-<div id="page-container" style="padding-top: 33px">
+<div id="page-container">
 """
 $pages
 """

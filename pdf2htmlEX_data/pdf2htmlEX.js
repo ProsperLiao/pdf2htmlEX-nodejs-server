@@ -26,6 +26,13 @@
 
 'use strict';
 
+// use setTimeout as a fallback for older browsers
+if (!window.requestAnimationFrame) {
+  window.requestAnimationFrame = function(fn){
+    setTimeout(fn,16.66);
+  }
+}
+
 var pdf2htmlEX = window['pdf2htmlEX'] = window['pdf2htmlEX'] || {};
 
 /**
@@ -66,9 +73,12 @@ var DEFAULT_CONFIG = {
   'key_handler' : true,
   // register hashchange handler, navigate to the location specified by the hash
   'hashchange_handler' : true,
+  'sidebar_toggle_button_id': 'sidebarToggle',
   // register view history handler, allowing going back to the previous location
   'view_history_handler' : true,
-
+  'maximum_scale': 10,
+  'minimum_scale': 0.1,
+  'pinch_to_scale': true,
   '__dummy__'        : 'no comma'
 };
 
@@ -239,9 +249,9 @@ function Viewer(config) {
   this.init_before_loading_content();
 
   var self = this;
-  document.addEventListener('DOMContentLoaded', function(){
-    self.init_after_loading_content();
-  }, false);
+  // document.addEventListener('DOMContentLoaded', function(){
+  //   self.init_after_loading_content();
+  // }, false);
 };
 
 Viewer.prototype = {
@@ -279,11 +289,12 @@ Viewer.prototype = {
     this.sidebar = document.getElementById(this.config['sidebar_id']);
     this.outline = document.getElementById(this.config['outline_id']);
     this.container = document.getElementById(this.config['container_id']);
+    this.sidebar_toggle_btn = document.getElementById(this.config['sidebar_toggle_button_id']);
     this.loading_indicator = document.getElementsByClassName(this.config['loading_indicator_cls'])[0];
 
 
     {
-      // Open the outline if nonempty
+      // show the toggle sidebar button if outline not empty
       var empty = true;
       var nodes = this.outline.childNodes;
       for (var i = 0, l = nodes.length; i < l; ++i) {
@@ -293,8 +304,10 @@ Viewer.prototype = {
           break;
         }
       }
-      if (!empty)
-        this.sidebar.classList.add('opened');
+      if (!empty){
+        this.sidebar_toggle_btn.classList.remove('hide');
+        this.sidebar_toggle_btn.classList.add('show');
+      }
     }
 
     this.find_pages();
@@ -320,16 +333,29 @@ Viewer.prototype = {
         if(e.state) self.navigate_to_dest(e.state);
       }, false);
     }
+    if (this.config['pinch_to_scale']) {
+      this.container.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+          self.scaling = true;
+          self.pinchStart(e);
+        }
+      }, false);
+      this.container.addEventListener('touchmove', function(e) {
+        if (self.scaling) {
+          self.pinchMove(e);
+        }
+      }, false);
+      this.container.addEventListener('touchend', function(e) {
+        if (self.scaling) {
+          self.pinchEnd(e);
+          self.scaling = false;
+        }
+      }, false);
+    }
 
     // register schedule rendering
     // renew old schedules since scroll() may be called frequently
-    // this.container.addEventListener('scroll', function() {
-    //   self.update_page_idx();
-    //   self.schedule_render(true);
-    // }, false);
-
-    /*新增，使用document物件上滾動載入頁面資料，這樣可以相容手機瀏覽器*/
-    document.addEventListener('scroll', function() {
+    this.container.addEventListener('scroll', function() {
       self.update_page_idx();
       self.schedule_render(true);
     }, false);
@@ -341,6 +367,7 @@ Viewer.prototype = {
 
     this.initialize_radio_button();
     this.render();
+    this.fit_width();
   },
 
   /*
@@ -713,6 +740,9 @@ Viewer.prototype = {
       new_scale = ratio;
 
     this.scale = new_scale;
+    var max_scale = this.config['maximum_scale'];
+    var min_scale = this.config['minimum_scale'];
+    this.scale = this.scale > max_scale ? max_scale : this.scale < min_scale ? min_scale : this.scale;
 
     if (!fixed_point)
       fixed_point = [0,0];
@@ -770,17 +800,57 @@ Viewer.prototype = {
     // some pages' visibility may be toggled, wait for next render()
     // renew old schedules since rescale() may be called frequently
     this.schedule_render(true);
+    document.getElementById('scaleRatio').textContent = (this.scale * 100).toFixed() + '%';
+    document.getElementById('customScaleOption').hidden = true;
+    if (this.needToAdjustScaleSelect) {
+      this.adjust_scale_select();
+      this.needToAdjustScaleSelect = false;
+    }
+    document.getElementById('zoomOut').disabled = this.scale <= min_scale;
+    document.getElementById('zoomIn').disabled = this.scale >= max_scale;
   },
 
-  fit_width : function () {
+  adjust_scale_select: function(){
+    var scaleSelect = document.getElementById('scaleSelect');
+    scaleSelect.selectedIndex = -1;
+    var customScaleOption = document.getElementById('customScaleOption')
+    var scaleText = (this.scale * 100).toFixed() + '%'
+    var customScale = Math.round(this.scale * 10000) / 100;
+    var predefinedValueFound = false;
+    for (var i = 0, l = scaleSelect.options.length; i < l; ++i) {
+      var option = scaleSelect.options[i];
+      var value = Number(option.value);
+      if (isNaN(value) || (value * 100).toFixed() !== customScale.toFixed()) {
+        option.selected = false;
+        continue;
+      }
+      option.selected = true;
+      predefinedValueFound = true;
+    }
+    if (!predefinedValueFound) {
+      customScaleOption.textContent = scaleText;
+      customScaleOption.selected = true;
+      customScaleOption.hidden = false;
+    }
+  },
+
+  fit_width : function (is_allowed_larger_than_original, inset) {
     var page_idx = this.cur_page_idx;
-    this.rescale(this.container.clientWidth / this.pages[page_idx].width(), true);
+    var ratio = (this.container.clientWidth -  (inset ? this.container.clientWidth * 0.2 : 0)) / this.pages[page_idx].width();
+    if (!is_allowed_larger_than_original && ratio > 1) {
+      ratio = 1;
+    }
+    this.rescale(ratio, true);
     this.scroll_to(page_idx);
   },
 
-  fit_height : function () {
+  fit_height : function (is_allowed_larger_than_original) {
     var page_idx = this.cur_page_idx;
-    this.rescale(this.container.clientHeight / this.pages[page_idx].height(), true);
+    var ratio = this.container.clientHeight / this.pages[page_idx].height();
+    if (!is_allowed_larger_than_original && ratio > 1) {
+      ratio = 1;
+    }
+    this.rescale(ratio, true);
     this.scroll_to(page_idx);
   },
   /**
@@ -967,20 +1037,39 @@ Viewer.prototype = {
     detail.push(this.scale);
 
     return JSON.stringify(detail);
-  }
+  },
+
+  /**
+   * handle the pinch-zoom event on the page-container
+   */
+  pinchStart: function(e) {
+    var dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY);
+    this.pinch_start_distance = dist;
+  },
+  pinchMove: function(e) {
+    var dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY);
+    var scale = dist / this.pinch_start_distance;
+    var max_scale = this.config['maximum_scale'];
+    var min_scale = this.config['minimum_scale'];
+    if ((this.scale >= max_scale && scale >= 1)  || (this.scale <= min_scale && scale <= 1)) {
+      return;
+    }
+    this.pinch_start_distance = dist;
+    this.rescale(scale, true, [(e.touches[0].pageX + e.touches[1].pageX) / 2.0, (e.touches[0].pageY + e.touches[1].pageY) / 2.0 + 32]);
+  },
+  pinchEnd: function(e) {
+    this.pinch_start_distance = undefined;
+  },
 };
 
 // export pdf2htmlEX.Viewer
 pdf2htmlEX['Viewer'] = Viewer;
 
-window.onload=function(){
-  var eles = document.getElementsByClassName('pf w0 h0');
-  var height = 0;
-  for(var i=0,len=eles.length;i<len;i++){
-    height +=eles[i].scrollHeight+20;
-  }
-  if(height>0) {
-    document.getElementById('page-container').style.height = height + 'px';
-    document.getElementById('page-container').style.overflow = 'hidden';
-  }
-}
+// disable gesture pinch to zoom in/out of the webpage
+document.addEventListener('gesturestart', function (e) {
+  e.preventDefault();
+});
