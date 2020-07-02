@@ -26,13 +26,6 @@
 
 'use strict';
 
-// use setTimeout as a fallback for older browsers
-if (!window.requestAnimationFrame) {
-  window.requestAnimationFrame = function(fn){
-    setTimeout(fn,16.66);
-  }
-}
-
 var pdf2htmlEX = window['pdf2htmlEX'] = window['pdf2htmlEX'] || {};
 
 /**
@@ -79,6 +72,7 @@ var DEFAULT_CONFIG = {
   'maximum_scale': 10,
   'minimum_scale': 0.1,
   'pinch_to_scale': true,
+  'cache_view_hash_interval': 3000,
   '__dummy__'        : 'no comma'
 };
 
@@ -87,6 +81,210 @@ var EPS = 1e-6;
 
 /************************************/
 /* utility function */
+
+/**
+ * md5
+ */
+var MD5 = function (string) {
+
+  function RotateLeft(lValue, iShiftBits) {
+    return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
+  }
+
+  function AddUnsigned(lX,lY) {
+    var lX4,lY4,lX8,lY8,lResult;
+    lX8 = (lX & 0x80000000);
+    lY8 = (lY & 0x80000000);
+    lX4 = (lX & 0x40000000);
+    lY4 = (lY & 0x40000000);
+    lResult = (lX & 0x3FFFFFFF)+(lY & 0x3FFFFFFF);
+    if (lX4 & lY4) {
+      return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
+    }
+    if (lX4 | lY4) {
+      if (lResult & 0x40000000) {
+        return (lResult ^ 0xC0000000 ^ lX8 ^ lY8);
+      } else {
+        return (lResult ^ 0x40000000 ^ lX8 ^ lY8);
+      }
+    } else {
+      return (lResult ^ lX8 ^ lY8);
+    }
+  }
+
+  function F(x,y,z) { return (x & y) | ((~x) & z); }
+  function G(x,y,z) { return (x & z) | (y & (~z)); }
+  function H(x,y,z) { return (x ^ y ^ z); }
+  function I(x,y,z) { return (y ^ (x | (~z))); }
+
+  function FF(a,b,c,d,x,s,ac) {
+    a = AddUnsigned(a, AddUnsigned(AddUnsigned(F(b, c, d), x), ac));
+    return AddUnsigned(RotateLeft(a, s), b);
+  };
+
+  function GG(a,b,c,d,x,s,ac) {
+    a = AddUnsigned(a, AddUnsigned(AddUnsigned(G(b, c, d), x), ac));
+    return AddUnsigned(RotateLeft(a, s), b);
+  };
+
+  function HH(a,b,c,d,x,s,ac) {
+    a = AddUnsigned(a, AddUnsigned(AddUnsigned(H(b, c, d), x), ac));
+    return AddUnsigned(RotateLeft(a, s), b);
+  };
+
+  function II(a,b,c,d,x,s,ac) {
+    a = AddUnsigned(a, AddUnsigned(AddUnsigned(I(b, c, d), x), ac));
+    return AddUnsigned(RotateLeft(a, s), b);
+  };
+
+  function ConvertToWordArray(string) {
+    var lWordCount;
+    var lMessageLength = string.length;
+    var lNumberOfWords_temp1=lMessageLength + 8;
+    var lNumberOfWords_temp2=(lNumberOfWords_temp1-(lNumberOfWords_temp1 % 64))/64;
+    var lNumberOfWords = (lNumberOfWords_temp2+1)*16;
+    var lWordArray=Array(lNumberOfWords-1);
+    var lBytePosition = 0;
+    var lByteCount = 0;
+    while ( lByteCount < lMessageLength ) {
+      lWordCount = (lByteCount-(lByteCount % 4))/4;
+      lBytePosition = (lByteCount % 4)*8;
+      lWordArray[lWordCount] = (lWordArray[lWordCount] | (string.charCodeAt(lByteCount)<<lBytePosition));
+      lByteCount++;
+    }
+    lWordCount = (lByteCount-(lByteCount % 4))/4;
+    lBytePosition = (lByteCount % 4)*8;
+    lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80<<lBytePosition);
+    lWordArray[lNumberOfWords-2] = lMessageLength<<3;
+    lWordArray[lNumberOfWords-1] = lMessageLength>>>29;
+    return lWordArray;
+  };
+
+  function WordToHex(lValue) {
+    var WordToHexValue="",WordToHexValue_temp="",lByte,lCount;
+    for (lCount = 0;lCount<=3;lCount++) {
+      lByte = (lValue>>>(lCount*8)) & 255;
+      WordToHexValue_temp = "0" + lByte.toString(16);
+      WordToHexValue = WordToHexValue + WordToHexValue_temp.substr(WordToHexValue_temp.length-2,2);
+    }
+    return WordToHexValue;
+  };
+
+  function Utf8Encode(string) {
+    string = string.replace(/\r\n/g,"\n");
+    var utftext = "";
+
+    for (var n = 0; n < string.length; n++) {
+
+      var c = string.charCodeAt(n);
+
+      if (c < 128) {
+        utftext += String.fromCharCode(c);
+      }
+      else if((c > 127) && (c < 2048)) {
+        utftext += String.fromCharCode((c >> 6) | 192);
+        utftext += String.fromCharCode((c & 63) | 128);
+      }
+      else {
+        utftext += String.fromCharCode((c >> 12) | 224);
+        utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+        utftext += String.fromCharCode((c & 63) | 128);
+      }
+
+    }
+
+    return utftext;
+  };
+
+  var x=Array();
+  var k,AA,BB,CC,DD,a,b,c,d;
+  var S11=7, S12=12, S13=17, S14=22;
+  var S21=5, S22=9 , S23=14, S24=20;
+  var S31=4, S32=11, S33=16, S34=23;
+  var S41=6, S42=10, S43=15, S44=21;
+
+  string = Utf8Encode(string);
+
+  x = ConvertToWordArray(string);
+
+  a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
+
+  for (k=0;k<x.length;k+=16) {
+    AA=a; BB=b; CC=c; DD=d;
+    a=FF(a,b,c,d,x[k+0], S11,0xD76AA478);
+    d=FF(d,a,b,c,x[k+1], S12,0xE8C7B756);
+    c=FF(c,d,a,b,x[k+2], S13,0x242070DB);
+    b=FF(b,c,d,a,x[k+3], S14,0xC1BDCEEE);
+    a=FF(a,b,c,d,x[k+4], S11,0xF57C0FAF);
+    d=FF(d,a,b,c,x[k+5], S12,0x4787C62A);
+    c=FF(c,d,a,b,x[k+6], S13,0xA8304613);
+    b=FF(b,c,d,a,x[k+7], S14,0xFD469501);
+    a=FF(a,b,c,d,x[k+8], S11,0x698098D8);
+    d=FF(d,a,b,c,x[k+9], S12,0x8B44F7AF);
+    c=FF(c,d,a,b,x[k+10],S13,0xFFFF5BB1);
+    b=FF(b,c,d,a,x[k+11],S14,0x895CD7BE);
+    a=FF(a,b,c,d,x[k+12],S11,0x6B901122);
+    d=FF(d,a,b,c,x[k+13],S12,0xFD987193);
+    c=FF(c,d,a,b,x[k+14],S13,0xA679438E);
+    b=FF(b,c,d,a,x[k+15],S14,0x49B40821);
+    a=GG(a,b,c,d,x[k+1], S21,0xF61E2562);
+    d=GG(d,a,b,c,x[k+6], S22,0xC040B340);
+    c=GG(c,d,a,b,x[k+11],S23,0x265E5A51);
+    b=GG(b,c,d,a,x[k+0], S24,0xE9B6C7AA);
+    a=GG(a,b,c,d,x[k+5], S21,0xD62F105D);
+    d=GG(d,a,b,c,x[k+10],S22,0x2441453);
+    c=GG(c,d,a,b,x[k+15],S23,0xD8A1E681);
+    b=GG(b,c,d,a,x[k+4], S24,0xE7D3FBC8);
+    a=GG(a,b,c,d,x[k+9], S21,0x21E1CDE6);
+    d=GG(d,a,b,c,x[k+14],S22,0xC33707D6);
+    c=GG(c,d,a,b,x[k+3], S23,0xF4D50D87);
+    b=GG(b,c,d,a,x[k+8], S24,0x455A14ED);
+    a=GG(a,b,c,d,x[k+13],S21,0xA9E3E905);
+    d=GG(d,a,b,c,x[k+2], S22,0xFCEFA3F8);
+    c=GG(c,d,a,b,x[k+7], S23,0x676F02D9);
+    b=GG(b,c,d,a,x[k+12],S24,0x8D2A4C8A);
+    a=HH(a,b,c,d,x[k+5], S31,0xFFFA3942);
+    d=HH(d,a,b,c,x[k+8], S32,0x8771F681);
+    c=HH(c,d,a,b,x[k+11],S33,0x6D9D6122);
+    b=HH(b,c,d,a,x[k+14],S34,0xFDE5380C);
+    a=HH(a,b,c,d,x[k+1], S31,0xA4BEEA44);
+    d=HH(d,a,b,c,x[k+4], S32,0x4BDECFA9);
+    c=HH(c,d,a,b,x[k+7], S33,0xF6BB4B60);
+    b=HH(b,c,d,a,x[k+10],S34,0xBEBFBC70);
+    a=HH(a,b,c,d,x[k+13],S31,0x289B7EC6);
+    d=HH(d,a,b,c,x[k+0], S32,0xEAA127FA);
+    c=HH(c,d,a,b,x[k+3], S33,0xD4EF3085);
+    b=HH(b,c,d,a,x[k+6], S34,0x4881D05);
+    a=HH(a,b,c,d,x[k+9], S31,0xD9D4D039);
+    d=HH(d,a,b,c,x[k+12],S32,0xE6DB99E5);
+    c=HH(c,d,a,b,x[k+15],S33,0x1FA27CF8);
+    b=HH(b,c,d,a,x[k+2], S34,0xC4AC5665);
+    a=II(a,b,c,d,x[k+0], S41,0xF4292244);
+    d=II(d,a,b,c,x[k+7], S42,0x432AFF97);
+    c=II(c,d,a,b,x[k+14],S43,0xAB9423A7);
+    b=II(b,c,d,a,x[k+5], S44,0xFC93A039);
+    a=II(a,b,c,d,x[k+12],S41,0x655B59C3);
+    d=II(d,a,b,c,x[k+3], S42,0x8F0CCC92);
+    c=II(c,d,a,b,x[k+10],S43,0xFFEFF47D);
+    b=II(b,c,d,a,x[k+1], S44,0x85845DD1);
+    a=II(a,b,c,d,x[k+8], S41,0x6FA87E4F);
+    d=II(d,a,b,c,x[k+15],S42,0xFE2CE6E0);
+    c=II(c,d,a,b,x[k+6], S43,0xA3014314);
+    b=II(b,c,d,a,x[k+13],S44,0x4E0811A1);
+    a=II(a,b,c,d,x[k+4], S41,0xF7537E82);
+    d=II(d,a,b,c,x[k+11],S42,0xBD3AF235);
+    c=II(c,d,a,b,x[k+2], S43,0x2AD7D2BB);
+    b=II(b,c,d,a,x[k+9], S44,0xEB86D391);
+    a=AddUnsigned(a,AA);
+    b=AddUnsigned(b,BB);
+    c=AddUnsigned(c,CC);
+    d=AddUnsigned(d,DD);
+  }
+
+  var temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
+
+  return temp.toLowerCase();
+}
 /**
  * @param{Array.<number>} ctm
  */
@@ -324,7 +522,7 @@ Viewer.prototype = {
 
     if (this.config['hashchange_handler']) {
       window.addEventListener('hashchange', function(e) {
-        self.navigate_to_dest(document.location.hash.substring(1));
+        self.navigate_and_remove_hash();
       }, false);
     }
 
@@ -368,8 +566,34 @@ Viewer.prototype = {
     this.initialize_radio_button();
     this.render();
     this.fit_width();
+    this.navigate_and_remove_hash();
+    this.schedule_cache_current_view_hash();
   },
-
+  navigate_and_remove_hash: function () {
+    if(!!document.location.hash.substring(1)) {
+      this.navigate_to_dest(document.location.hash.substring(1));
+    } else {
+      var loc = window.location.href, index = loc.indexOf('#');
+      var url = loc.substring(0, index);
+      var cache_view_hash = localStorage.getItem('pdf2html_view_hash_' + MD5(url));
+      this.navigate_to_dest(cache_view_hash);
+    }
+    window.history.replaceState("", document.title, window.location.pathname);
+  },
+  /*
+   *  save position and scale cache
+   */
+  cache_current_view_hash: function() {
+    var cur_hash = pdf2htmlEX.defaultViewer.get_current_view_hash();
+    var loc = window.location.href, index = loc.indexOf('#');
+    var url = loc.substring(0, index);
+    localStorage.setItem('pdf2html_view_hash_' + MD5(url), cur_hash);
+    pdf2htmlEX.defaultViewer.schedule_cache_current_view_hash();
+  },
+  schedule_cache_current_view_hash: function() {
+    var self = this;
+    setTimeout(self.cache_current_view_hash, this.config['cache_view_hash_interval']);
+  },
   /*
    * set up this.pages and this.page_map
    * pages is an array holding all the Page objects
@@ -789,13 +1013,15 @@ Viewer.prototype = {
     else if (fp_y_inside > fp_p_height)
       fp_y_inside = fp_p_height;
 
+    var old_container_scrollLeft = container.scrollLeft, old_container_scrollTop = container.scrollTop;
+
     // Rescale pages
     for (var i = 0; i < pl_len; ++i)
         pl[i].rescale(new_scale);
 
     // Correct container scroll to keep view aligned while zooming
-    container.scrollLeft += fp_x_inside / old_scale * new_scale + fp_p.offsetLeft + fp_p.clientLeft - fp_x_inside - fp_x_ref;
-    container.scrollTop += fp_y_inside / old_scale * new_scale + fp_p.offsetTop + fp_p.clientTop - fp_y_inside - fp_y_ref;
+    container.scrollLeft = old_container_scrollLeft + (fp_x_inside / old_scale * new_scale + fp_p.offsetLeft + fp_p.clientLeft - fp_x_inside - fp_x_ref);
+    container.scrollTop = old_container_scrollTop + (fp_y_inside / old_scale * new_scale + fp_p.offsetTop + fp_p.clientTop - fp_y_inside - fp_y_ref);
 
     // some pages' visibility may be toggled, wait for next render()
     // renew old schedules since rescale() may be called frequently
@@ -899,8 +1125,41 @@ Viewer.prototype = {
    */
   navigate_to_dest : function(detail_str, src_page) {
     try {
-      var detail = JSON.parse(detail_str);
+      var detail = JSON.parse(decodeURIComponent(detail_str));
     } catch(e) {
+      if (detail_str.substr(0, 2) === 'pf') {
+        var target_page_no = parseInt(detail_str.substr(2), 16);
+        var page_map = this.page_map;
+        if (!(target_page_no in page_map)) return;
+        var target_page_idx = page_map[target_page_no];
+        var target_page = this.pages[target_page_idx];
+
+        var self = this;
+        /**
+         * page should of type Page
+         * @param{Page} page
+         */
+        var transform_and_scroll_2 = function(page) {
+          var pos = page.view_position();
+          pos = page.loaded ? transform(page.ctm, pos) : pos;
+          if (upside_down) {
+            pos[1] = page.height() - pos[1];
+          }
+          self.scroll_to(target_page_idx, pos);
+        };
+
+        if (target_page.loaded) {
+          transform_and_scroll_2(target_page);
+        } else {
+          // TODO: scroll_to may finish before load_page
+
+          // Scroll to the exact position once loaded.
+          this.load_page(target_page_idx, undefined, transform_and_scroll_2);
+
+          // In the meantime page gets loaded, scroll approximately position for maximum responsiveness.
+          this.scroll_to(target_page_idx);
+        }
+      }
       return;
     }
 
@@ -925,7 +1184,7 @@ Viewer.prototype = {
     var cur_page = src_page || this.pages[this.cur_page_idx];
 
     var cur_pos = cur_page.view_position();
-    cur_pos = transform(cur_page.ictm, [cur_pos[0], cur_page.height()-cur_pos[1]]);
+    cur_pos = cur_page.loaded ? transform(cur_page.ictm, [cur_pos[0], cur_page.height()-cur_pos[1]]) : cur_pos;
 
     var zoom = this.scale;
     var pos = [0,0];
@@ -938,11 +1197,11 @@ Viewer.prototype = {
     // TODO: BBox
     switch(detail[1]) {
       case 'XYZ':
-        pos = [ (detail[2] === null) ? cur_pos[0] : detail[2] * scale
-              , (detail[3] === null) ? cur_pos[1] : detail[3] * scale ];
         zoom = detail[4];
         if ((zoom === null) || (zoom === 0))
           zoom = this.scale;
+        pos = [ (detail[2] === null) ? cur_pos[0] : detail[2] * zoom
+          , (detail[3] === null) ? cur_pos[1] : detail[3] * zoom ];
         ok = true;
         break;
       case 'Fit':
@@ -973,6 +1232,7 @@ Viewer.prototype = {
 
     if (!ok) return;
 
+    this.needToAdjustScaleSelect = true;
     this.rescale(zoom, false);
 
     var self = this;
@@ -1026,6 +1286,8 @@ Viewer.prototype = {
     var detail = [];
     var cur_page = this.pages[this.cur_page_idx];
 
+    if (!cur_page.loaded) return;
+
     detail.push(cur_page.num);
     detail.push('XYZ');
 
@@ -1036,7 +1298,7 @@ Viewer.prototype = {
 
     detail.push(this.scale);
 
-    return JSON.stringify(detail);
+    return encodeURIComponent(JSON.stringify(detail));
   },
 
   /**
@@ -1059,6 +1321,7 @@ Viewer.prototype = {
       return;
     }
     this.pinch_start_distance = dist;
+    this.needToAdjustScaleSelect = true;
     this.rescale(scale, true, [(e.touches[0].pageX + e.touches[1].pageX) / 2.0, (e.touches[0].pageY + e.touches[1].pageY) / 2.0 + 32]);
   },
   pinchEnd: function(e) {
