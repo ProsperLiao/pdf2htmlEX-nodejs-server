@@ -574,7 +574,7 @@ Viewer.prototype = {
       this.navigate_to_dest(document.location.hash.substring(1));
     } else {
       var loc = window.location.href, index = loc.indexOf('#');
-      var url = loc.substring(0, index);
+      var url = index > 0 ? loc.substring(0, index) : loc;
       var cache_view_hash = localStorage.getItem('pdf2html_view_hash_' + MD5(url));
       this.navigate_to_dest(cache_view_hash);
     }
@@ -586,7 +586,7 @@ Viewer.prototype = {
   cache_current_view_hash: function() {
     var cur_hash = pdf2htmlEX.defaultViewer.get_current_view_hash();
     var loc = window.location.href, index = loc.indexOf('#');
-    var url = loc.substring(0, index);
+    var url = index > 0 ? loc.substring(0, index) : loc;
     localStorage.setItem('pdf2html_view_hash_' + MD5(url), cur_hash);
     pdf2htmlEX.defaultViewer.schedule_cache_current_view_hash();
   },
