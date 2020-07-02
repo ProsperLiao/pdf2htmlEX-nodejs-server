@@ -29,10 +29,10 @@
 #############
 # Styles 
 # base CSS styles - Do not modify
-@base.css
+@base.min.css
 
 # fancy CSS styles - Optional
-@fancy.css
+@fancy.min.css
 
 """
 <style>
@@ -64,7 +64,7 @@ $css
 #   'key_handler' : false 
 # });
 #TEST_IGNORE_BEGIN
-@pdf2htmlEX.js
+@pdf2htmlEX.min.js
 
 """
 <script>
@@ -74,7 +74,7 @@ try{
 </script>
 """
 # must be included after @pdf2htmlEX.min.js and initialization of pdf2htmlEX.Viewer
-@navbar.js
+@navbar.min.js
 
 #TEST_IGNORE_END
 
