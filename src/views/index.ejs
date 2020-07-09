@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>pdf2html service</title>
+</head>
+<body>
+<form enctype="multipart/form-data" action="/html2pdf" method="post">
+    <div class="form-group">
+        <input type="file" name="uploaded_file" /><br>
+        <input type="checkbox" id="split-pages" class="form-control" name="split-pages"><label for="split-pages">split-pages</label><br>
+        <input type="submit" value="upload" class="btn btn-default"/>
+    </div>
+</form>
+</body>
+</html>
