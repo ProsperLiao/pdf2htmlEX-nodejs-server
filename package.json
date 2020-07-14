@@ -2,11 +2,12 @@
   "name": "pdf2htmlex-nodejs-server",
   "version": "1.0.0",
   "description": "A nodejs server for utilizing pdf2htmlEX to transcode pdf to html.",
-  "main": "src/app.ts",
+  "main": "dist/index.ts",
   "scripts": {
     "dev": "nodemon --watch 'src/' -e ts --exec 'ts-node' .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prod": ""
+    "build": "rimraf ./dist && tsc",
+    "prod": "npm run build && node dist/app.js"
   },
   "repository": {
     "type": "git",
@@ -21,22 +22,56 @@
   "author": "Prosper Liao",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "body-parser": "^1.19.0",
+    "bull": "^3.15.0",
+    "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "ejs": "^3.1.3",
     "express": "^4.17.1",
+    "helmet": "^3.23.3",
+    "http-errors": "^1.8.0",
     "morgan": "^1.9.1",
     "multer": "^1.4.2",
     "sequelize": "^6.3.0",
     "sqlite3": "^5.0.0"
   },
   "devDependencies": {
+    "@types/bull": "^3.14.0",
+    "@types/cookie-parser": "^1.4.2",
+    "@types/cors": "^2.8.6",
+    "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.6",
+    "@types/helmet": "0.0.47",
+    "@types/http-errors": "^1.6.3",
+    "@types/morgan": "^1.9.1",
+    "@types/multer": "^1.4.3",
+    "@typescript-eslint/eslint-plugin": "^3.6.0",
+    "@typescript-eslint/parser": "^3.6.0",
+    "eslint": "^7.4.0",
+    "eslint-config-airbnb-typescript": "^8.0.2",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-jsdoc": "^29.1.3",
+    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "eslint-plugin-prefer-arrow": "^1.2.1",
+    "eslint-plugin-prettier": "^3.1.4",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.11",
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
+    "rimraf": "^3.0.2",
     "sequelize-cli": "^6.2.0",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.5"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,html}": [
+      "eslint --fix"
+    ]
   }
 }
