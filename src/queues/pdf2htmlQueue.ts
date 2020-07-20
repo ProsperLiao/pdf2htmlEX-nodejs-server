@@ -1,39 +1,45 @@
+/* eslint-disable
+    id-blacklist,
+    @typescript-eslint/no-unused-vars,
+    @typescript-eslint/no-floating-promises,
+    consistent-return,
+    @typescript-eslint/dot-notation
+*/
 import models from '../models';
+import { Pdf2HtmlEx, AdditionalOptions, Pdf2HtmlProgressObj } from '../pdf2htmljs/pdf2html';
 
 import Queue from 'bull';
-// import fs from 'fs';
-// var ffmpeg = require("fluent-ffmpeg");
+
+import * as console from 'console';
+import pathLib from 'path';
 
 const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  convertPdf2Html = (path: string, _options: any) => {
-    const fileName = path.replace(/\.[^/.]+$/, ''),
-      convertedFilePath = `${fileName}_${+new Date()}`;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    return new Promise((resolve: (value?: { convertedFilePath: string }) => void, _reject) => {
-      // ffmpeg(`${__dirname}/../files/${path}`)
-      //   .setFfmpegPath(process.env.FFMPEG_PATH)
-      //   .setFfprobePath(process.env.FFPROBE_PATH)
-      //   .toFormat(format)
-      //   .on("start", (commandLine) => {
-      //     console.log(`Spawned Ffmpeg with command: ${commandLine}`);
-      //   })
-      //   .on("error", (err, stdout, stderr) => {
-      //     console.log(err, stdout, stderr);
-      //     reject(err);
-      //   })
-      //   .on("end", (stdout, stderr) => {
-      //     console.log(stdout, stderr);
-      //     resolve({ convertedFilePath });
-      //   })
-      //   .saveToFile(`${__dirname}/../files/${convertedFilePath}`);
-      setTimeout(() => {
-        resolve({ convertedFilePath });
-      }, 3000);
+  convertPdf2Html = (
+    src: string,
+    options: AdditionalOptions,
+    progressHandler: (progress: Pdf2HtmlProgressObj) => void,
+  ) => {
+    const fileName = src.replace(/\.[^/.]+$/, ''),
+      basename = pathLib.basename(fileName),
+      dir = fileName.slice(0, -basename.length),
+      dest = `${dir}${basename}.html`;
+
+    return new Promise((resolve: (value?: { convertedFilePath: string }) => void, reject) => {
+      const pdf2HtmlEx = new Pdf2HtmlEx(src, dest, options);
+      pdf2HtmlEx.progress(progressHandler);
+      pdf2HtmlEx
+        .convert()
+        .then(ret => {
+          console.log(ret);
+          resolve({ convertedFilePath: dest });
+        })
+        .catch(e => {
+          console.log(e);
+          reject(e);
+        });
     });
   };
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises,consistent-return
 pdf2HtmlQueue.process(async job => {
   const { id, path, options } = job.data;
   try {
@@ -41,13 +47,29 @@ pdf2HtmlQueue.process(async job => {
         where: { id },
       }),
       conv = conversions[0];
-    if (conv.status === 'cancelled') {
+    if (conv.status === 'cancelled' || conv.status === 'done') {
       return Promise.resolve();
     }
-    const pathObj = await convertPdf2Html(path, options),
+    const start = Date.now();
+    await models.Pdf2HtmlConversion.update(
+      { status: 'converting' },
+      {
+        where: { id, status: 'pending' },
+      },
+    );
+    const progressHandler = (progress: Pdf2HtmlProgressObj) => {
+        models.Pdf2HtmlConversion.update(
+          { current: progress.current, total: progress.total },
+          {
+            where: { id },
+          },
+        );
+      },
+      pathObj = await convertPdf2Html(path, options, progressHandler),
+      duration = (Date.now() - start) / 1000,
       { convertedFilePath } = pathObj,
       conversion = await models.Pdf2HtmlConversion.update(
-        { convertedFilePath, status: 'done' },
+        { convertedFilePath, status: 'done', convertDuration: duration },
         {
           where: { id },
         },
