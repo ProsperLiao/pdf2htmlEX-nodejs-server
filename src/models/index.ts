@@ -5,13 +5,13 @@ import path from 'path';
 
 const basename = path.basename(__filename),
   env = process.env.NODE_ENV || 'development',
-  config = require(path.resolve(__dirname, '../database/config/config.json'))[env],
+  config = require(path.resolve('database/config/config.json'))[env],
   db: any = {},
   sequelize = new Sequelize(config);
 
 fs.readdirSync(__dirname)
   .filter(file => {
-    return file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js';
+    return file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === (env === 'production' ? '.js' : '.ts');
   })
   .forEach(file => {
     const model = require(path.join(__dirname, file))(sequelize, DataTypes);

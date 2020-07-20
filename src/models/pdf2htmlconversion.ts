@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Model, Sequelize } from 'sequelize';
 
 module.exports = (sequelize: Sequelize, DataTypes: any) => {
@@ -11,18 +12,24 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
      */
     static associate(models: Model[]) {
       // define association here
-      console.log(models);
     }
   }
 
   Pdf2HtmlConversion.init(
     {
+      originFileName: DataTypes.STRING,
       filePath: DataTypes.STRING,
       convertedFilePath: DataTypes.STRING,
+      splitPage: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
       status: {
-        type: DataTypes.ENUM('pending', 'done', 'cancelled'),
+        type: DataTypes.ENUM('pending', 'done', 'cancelled', 'converting'),
         defaultValue: 'pending',
       },
+      current: DataTypes.INTEGER,
+      total: DataTypes.INTEGER,
     },
     {
       sequelize,
