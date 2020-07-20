@@ -4,7 +4,7 @@ const router = express.Router();
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 router.get('/', (req, res, _next) => {
-  res.render('index');
+  res.render('index', { page: 'home' });
 });
 
 export = router;

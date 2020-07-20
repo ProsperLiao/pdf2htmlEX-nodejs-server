@@ -18,6 +18,7 @@ class App {
 
     this.configure();
     this.mountRoutes();
+    this.afterMountRoutes();
   }
 
   /**
@@ -30,35 +31,36 @@ class App {
     this.express.use(cors());
     this.express.use(express.json());
     this.express.use(cookieParser());
-    this.express.use(express['static'](path.join(__dirname, 'public')));
+    this.express.use(express['static'](path.resolve(__dirname, '../public')));
     this.express.use(logger('dev'));
 
     // view engine setup
     this.express.set('views', path.join(__dirname, 'views'));
     this.express.set('view engine', 'ejs');
-
-    // catch 404 and forward to error handler
-    this.express.use((req, res, next) => {
-      next(createError(404));
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.express.use((error: any, req: Request, res: Response, _next: NextFunction) => {
-      // set locals, only providing error in development
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      res.locals.message = error.message;
-      // eslint-disable-next-line  @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      res.locals.error = req.app.get('env') === 'development' ? error : {};
-      // render the error page
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      res.status(error.status || 500);
-      res.render('error');
-    });
   }
 
   private mountRoutes() {
     this.express.use('/', indexRouter);
-    this.express.use('/conversions', conversionsRouter);
+    this.express.use('/api', conversionsRouter);
+  }
+
+  private afterMountRoutes() {
+    // catch 404 and forward to error handler
+    this.express.use((req, res, next) => {
+      next(createError(404, 'not found!'));
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    this.express.use((error: any, req: Request, res: Response, _next: NextFunction) => {
+      // set locals, only providing error in development
+      res.locals.message = error.message;
+      res.locals.error = req.app.get('env') === 'development' ? error : {};
+      res.status(error.status || 500);
+      if (req.path.indexOf('api') !== -1) {
+        res.json(error);
+      } else {
+        res.render('index', { page: 'error', url: req.url, errno: error.status || 500, errmsg: error.message });
+      }
+    });
   }
 }
 
