@@ -1,0 +1,70 @@
+<div class="home">
+    <h1 class="text-center">Convert PDF</h1>
+    <form enctype="multipart/form-data" action="/html2pdf" method="post">
+        <div class="form-group">
+            <input type="file" name="uploaded_file" /><br>
+            <input type="checkbox" id="split-pages" class="form-control" name="split-pages"><label for="split-pages">split-pages</label><br>
+            <input type="submit" value="upload" class="btn btn-default"/>
+        </div>
+    </form>
+
+    <br />
+    <table>
+        <thead>
+        <tr>
+            <th>File Name</th>
+            <th>Converted File</th>
+            <th>Output Format</th>
+            <th>Status</th>
+            <th>Start</th>
+            <th>Cancel</th>
+            <th>Delete</th>
+        </tr>
+        </thead>
+        <tbody id="tasks-list">
+        <%= conversionsStore.conversions.forEach(c => { %>
+            <%= return ( %>
+        <tr>
+            <td>{c.filePath}</td>
+            <td>{c.status}</td>
+            <td>{c.outputFormat}</td>
+            <td>
+                {c.convertedFilePath ? (
+                <a href={`${APIURL}/${c.convertedFilePath}`}>Open</a>
+                ) : (
+                "Not Available"
+                )}
+            </td>
+            <td>
+                <Button
+                        className="button"
+                        type="button"
+                        onClick={startConversionJob.bind(this, c.id)}
+                >
+                    Start
+                </Button>
+            </td>
+            <td>
+                <Button
+                        className="button"
+                        type="button"ā
+                        onClick={cancelConversionJob.bind(this, c.id)}
+                >
+                    Cancel
+                </Button>
+            </td>
+            <td>
+                <Button
+                        className="button"
+                        type="button"
+                        onClick={deleteConversionJob.bind(this, c.id)}
+                >
+                    Delete
+                </Button>
+            </td>
+        </tr>
+        <%=); %>
+        })}
+        </tbody>
+    </table>
+</div>

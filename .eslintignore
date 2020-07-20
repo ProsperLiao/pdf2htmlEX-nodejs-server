@@ -5,6 +5,7 @@ e2e/
 package-lock.json
 **/*.spec.ts
 .eslintrc.js
+database/migrations/*
 
 ### Example user template template
 ### Example user template
