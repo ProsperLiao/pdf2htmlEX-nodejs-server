@@ -9,6 +9,8 @@ pack.zip
 /out-tsc
 # Only exists if Bazel was run
 /bazel-out
+database/*.db
+public/pdf2html/**/*
 
 # dependencies
 /node_modules
