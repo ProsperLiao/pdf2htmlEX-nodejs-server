@@ -1,70 +1,47 @@
 <div class="home">
-    <h1 class="text-center">Convert PDF</h1>
-    <form enctype="multipart/form-data" action="/html2pdf" method="post">
-        <div class="form-group">
-            <input type="file" name="uploaded_file" /><br>
-            <input type="checkbox" id="split-pages" class="form-control" name="split-pages"><label for="split-pages">split-pages</label><br>
-            <input type="submit" value="upload" class="btn btn-default"/>
+    <h1 class="text-center">Convert PDF to Html</h1>
+    <form id="uploadForm" class="mb-3" enctype="multipart/form-data" action="/api/conversion" method="post">
+        <div class="custom-file mb-3">
+            <input type="file" class="custom-file-input" id="validatedCustomFile" name="uploaded_file" required>
+            <label class="custom-file-label" for="validatedCustomFile">Choose file...</label>
+            <div class="invalid-feedback">Example invalid custom file feedback</div>
         </div>
+        <div class="form-group mb-3">
+            <label  for="customControlValidation1">--split-pages (是否切分为多个单页)</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="split_pages" id="exampleRadios1" value="true" checked>
+                <label class="form-check-label" for="exampleRadios1">
+                    是
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="split_pages" id="exampleRadios2" value="false">
+                <label class="form-check-label" for="exampleRadios2">
+                    否
+                </label>
+            </div>
+        </div>
+        <input type="submit" value="upload" class="btn btn-primary" id="upload_button"><span class="ml-5" id="upload_progress"></span>
     </form>
 
     <br />
-    <table>
+    <table class="table">
         <thead>
         <tr>
-            <th>File Name</th>
-            <th>Converted File</th>
-            <th>Output Format</th>
-            <th>Status</th>
-            <th>Start</th>
-            <th>Cancel</th>
-            <th>Delete</th>
+            <th scope="col">#</th>
+            <th scope="col">Origin Name</th>
+            <th scope="col">Uploaded File</th>
+            <th scope="col">Converted File</th>
+            <th scope="col">Download</th>
+            <th scope="col">Split-Pages</th>
+            <th scope="col">Status</th>
+            <th scope="col">Progress (current/total)</th>
+            <th scope="col">Convert Duration (in seconds)</th>
+            <th scope="col">Actions</th>
+            <th scope="col">CreatedAt</th>
         </tr>
         </thead>
         <tbody id="tasks-list">
-        <%= conversionsStore.conversions.forEach(c => { %>
-            <%= return ( %>
-        <tr>
-            <td>{c.filePath}</td>
-            <td>{c.status}</td>
-            <td>{c.outputFormat}</td>
-            <td>
-                {c.convertedFilePath ? (
-                <a href={`${APIURL}/${c.convertedFilePath}`}>Open</a>
-                ) : (
-                "Not Available"
-                )}
-            </td>
-            <td>
-                <Button
-                        className="button"
-                        type="button"
-                        onClick={startConversionJob.bind(this, c.id)}
-                >
-                    Start
-                </Button>
-            </td>
-            <td>
-                <Button
-                        className="button"
-                        type="button"ā
-                        onClick={cancelConversionJob.bind(this, c.id)}
-                >
-                    Cancel
-                </Button>
-            </td>
-            <td>
-                <Button
-                        className="button"
-                        type="button"
-                        onClick={deleteConversionJob.bind(this, c.id)}
-                >
-                    Delete
-                </Button>
-            </td>
-        </tr>
-        <%=); %>
-        })}
         </tbody>
     </table>
 </div>
