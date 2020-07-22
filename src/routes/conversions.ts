@@ -64,6 +64,48 @@ router.post('/conversion', upload, async (req, res, _next) => {
       splitPage: !(splitPage !== undefined && (splitPage === '0' || splitPage === 'false')),
     },
     conversion = await models.Pdf2HtmlConversion.create(_data);
+  res.status(201).json({
+    message: 'Upload Successfully!',
+    task: conversion,
+    href: `/api/conversion/${conversion.id}/start`,
+  });
+});
+
+router.post('/sync_conversion', upload, async (req, res, next) => {
+  if (!req.file) {
+    res.send({
+      status: false,
+      message: 'No file uploaded',
+    });
+  }
+  const splitPage = req.body['split_pages'],
+    _data = {
+      ...req.body,
+      originFileName: req.file.originalname,
+      filePath: req.file.path,
+      splitPage: !(splitPage !== undefined && (splitPage === '0' || splitPage === 'false')),
+    },
+    conversion = await models.Pdf2HtmlConversion.create(_data),
+    { id } = conversion;
+
+  try {
+    await models.Pdf2HtmlConversion.update(
+      { status: 'pending' },
+      {
+        where: { id },
+      },
+    );
+    await pdf2HtmlQueue.add({
+      id,
+      path: `./${conversion.filePath}`,
+      options: {
+        '--split-pages': conversion.splitPage,
+      },
+    });
+  } catch (error) {
+    next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
+    return;
+  }
   res.json(conversion);
 });
 
@@ -73,7 +115,7 @@ router.get('/conversion/:id', async (req, res, next) => {
       where: { id },
     });
   if (conversions.length === 0) {
-    next(createError(404, 'Task is not exist'));
+    next(createError(400, 'Task is not exist'));
     return;
   }
   const conversion = conversions[0];
@@ -86,26 +128,28 @@ router['delete']('/conversion/:id', async (req, res, next) => {
       where: { id },
     });
   if (conversions.length === 0) {
-    next(createError(404, 'Task is not exist.'));
+    next(createError(400, 'Task is not exist.'));
     return;
   }
   const conversion = conversions[0];
   if (conversion.status === 'converting') {
-    next(createError(404, 'Task is converting, unable be deleted. Please try later.'));
+    next(createError(400, 'Task is converting, unable be deleted. Please try later.'));
     return;
   }
   try {
-    console.log(`${conversion.filePath}`);
-    await fs.promises.unlink(`${conversion.filePath}`);
-    if (conversion.convertedFilePath) {
-      await fs.promises.unlink(`${conversion.convertedFilePath}`);
-    }
+    await fs.promises.rmdir(`${path.dirname(conversion.filePath)}`, { recursive: true });
+    // if (conversion.convertedFilePath) {
+    //   await fs.promises.unlink(`${conversion.convertedFilePath}`);
+    // }
   } catch (error) {
     next(createError(500, 'Deleting Failed.'));
     return;
   }
   await conversion.destroy();
-  res.json({});
+  res.json({
+    message: 'Delete Successfully!',
+    task: conversion,
+  });
 });
 
 router.put('/conversion/:id/cancel', async (req, res, _next) => {
@@ -116,7 +160,10 @@ router.put('/conversion/:id/cancel', async (req, res, _next) => {
         where: { id, status: 'pending' },
       },
     );
-  res.json(conversion);
+  res.json({
+    message: 'Cancel Successfully!',
+    task: conversion,
+  });
 });
 
 router.get('/conversion/:id/start', async (req, res, next) => {
@@ -125,15 +172,21 @@ router.get('/conversion/:id/start', async (req, res, next) => {
       where: { id },
     });
   if (conversions.length === 0) {
-    next(createError(404, 'Task is not exist'));
+    next(createError(400, 'Task is not exist'));
     return;
   }
   const conversion = conversions[0];
-  if (conversion.status !== 'pending') {
-    next(createError(404, "It's not a valid task (pending) to start!")); // eslint-disable-line
+  if (conversion.status !== 'uploaded' && conversion.status !== 'cancelled') {
+    next(createError(400, "It's not a valid task (uploaded or cancelled) to start!")); // eslint-disable-line
     return;
   }
   try {
+    await models.Pdf2HtmlConversion.update(
+      { status: 'pending' },
+      {
+        where: { id },
+      },
+    );
     await pdf2HtmlQueue.add({
       id,
       path: `./${conversion.filePath}`,
@@ -144,7 +197,29 @@ router.get('/conversion/:id/start', async (req, res, next) => {
   } catch (error) {
     next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
   }
-  res.json({});
+  res.status(202).json({
+    message: 'Start Successfully!',
+    task: conversion,
+    id,
+    href: `/api/conversion/${conversion.id}`,
+  });
+});
+
+router.get('/conversion/:id/download', async (req, res, next) => {
+  const { id } = req.params,
+    conversions = await models.Pdf2HtmlConversion.findAll({
+      where: { id },
+    });
+  if (conversions.length === 0) {
+    next(createError(400, 'Task is not exist'));
+    return;
+  }
+  const conversion = conversions[0];
+  if (conversion.status !== 'done') {
+    next(createError(400, "It's not done yet!")); // eslint-disable-line
+    return;
+  }
+  res.download(conversion.zipFilePath);
 });
 
 export = router;

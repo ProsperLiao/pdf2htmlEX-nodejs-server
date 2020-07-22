@@ -17,6 +17,9 @@ module.exports = {
       convertedFilePath: {
         type: Sequelize.STRING
       },
+      zipFilePath: {
+        type: Sequelize.STRING
+      },
       splitPage: {
         type: {
           types: Sequelize.BOOLEAN,
@@ -25,11 +28,12 @@ module.exports = {
       },
       status: {
         type: Sequelize.ENUM,
-        values: ["pending", "done", "cancelled", "converting"],
-        defaultValue: "pending"
+        values: ["pending", "done", "cancelled", "converting", "uploaded"],
+        defaultValue: "uploaded"
       },
       current: Sequelize.INTEGER,
       total: Sequelize.INTEGER,
+      convertDuration: Sequelize.INTEGER,
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

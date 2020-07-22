@@ -8,9 +8,11 @@
 import models from '../models';
 import { Pdf2HtmlEx, AdditionalOptions, Pdf2HtmlProgressObj } from '../pdf2htmljs/pdf2html';
 
+import archiver from 'archiver';
 import Queue from 'bull';
 
 import * as console from 'console';
+import fs from 'fs';
 import pathLib from 'path';
 
 const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
@@ -22,7 +24,7 @@ const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
     const fileName = src.replace(/\.[^/.]+$/, ''),
       basename = pathLib.basename(fileName),
       dir = fileName.slice(0, -basename.length),
-      dest = `${dir}${basename}.html`;
+      dest = `${dir}${basename}`;
 
     return new Promise((resolve: (value?: { convertedFilePath: string }) => void, reject) => {
       const pdf2HtmlEx = new Pdf2HtmlEx(src, dest, options);
@@ -38,6 +40,26 @@ const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
           reject(e);
         });
     });
+  },
+  zip = async (convertedPath: string, splitPages: boolean) => {
+    console.log(convertedPath, splitPages);
+    const output = fs.createWriteStream(`${convertedPath}.zip`),
+      archive = archiver('zip');
+    output.on('close', function () {
+      console.log(`${archive.pointer()} total bytes`);
+      console.log('archiver has been finalized and the output file descriptor has closed.');
+    });
+    archive.on('error', function (err) {
+      throw err;
+    });
+    archive.pipe(output);
+    if (splitPages) {
+      archive.directory(convertedPath, pathLib.basename(convertedPath));
+    } else {
+      archive.file(`${convertedPath}.html`, { name: `${pathLib.basename(convertedPath)}.html` });
+    }
+    await archive.finalize();
+    return `${convertedPath}.zip`;
   };
 
 pdf2HtmlQueue.process(async job => {
@@ -68,8 +90,9 @@ pdf2HtmlQueue.process(async job => {
       pathObj = await convertPdf2Html(path, options, progressHandler),
       duration = (Date.now() - start) / 1000,
       { convertedFilePath } = pathObj,
+      zipFilePath = await zip(convertedFilePath, options['--split-pages']),
       conversion = await models.Pdf2HtmlConversion.update(
-        { convertedFilePath, status: 'done', convertDuration: duration },
+        { convertedFilePath, status: 'done', convertDuration: duration, zipFilePath },
         {
           where: { id },
         },

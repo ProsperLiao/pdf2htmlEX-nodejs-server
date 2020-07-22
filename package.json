@@ -23,6 +23,7 @@
   "author": "Prosper Liao",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "archiver": "^4.0.2",
     "bull": "^3.15.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
@@ -37,6 +38,7 @@
     "sqlite3": "^5.0.0"
   },
   "devDependencies": {
+    "@types/archiver": "^3.1.0",
     "@types/bull": "^3.14.0",
     "@types/cookie-parser": "^1.4.2",
     "@types/cors": "^2.8.6",

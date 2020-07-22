@@ -31,7 +31,7 @@ class Pdf2HtmlEx {
     this.customAdditional = additional;
     this.options.additional.push(src);
     if (typeof outfile !== 'undefined' && outfile !== null) {
-      this.options.additional.push(outfile);
+      this.options.additional.push(`${outfile}.html`);
     }
   }
 
@@ -58,12 +58,12 @@ class Pdf2HtmlEx {
       let error = '';
       this._preset(presetFile);
 
+      this.options.additional.push('--data-dir', './pdf2htmlEX_data');
       if (this.customAdditional && this.customAdditional['--split-pages']) {
         // 需要分页，则添加相应的参数
         this.options.additional.push('--split-pages', '1');
         this.options.additional.push('--embed', 'cfijo');
         this.options.additional.push('--process-outline', '1');
-        this.options.additional.push('--data-dir', './pdf2htmlEX_data');
         const dest = this.options.additional[1],
           dir = dest.replace(/\.[^/.]+$/, ''),
           originName = pathLib.basename(dir);

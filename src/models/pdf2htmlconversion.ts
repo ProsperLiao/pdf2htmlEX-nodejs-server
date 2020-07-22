@@ -20,16 +20,18 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
       originFileName: DataTypes.STRING,
       filePath: DataTypes.STRING,
       convertedFilePath: DataTypes.STRING,
+      zipFilePath: DataTypes.STRING,
       splitPage: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
       },
       status: {
-        type: DataTypes.ENUM('pending', 'done', 'cancelled', 'converting'),
-        defaultValue: 'pending',
+        type: DataTypes.ENUM('pending', 'done', 'cancelled', 'converting', 'uploaded'),
+        defaultValue: 'uploaded',
       },
       current: DataTypes.INTEGER,
       total: DataTypes.INTEGER,
+      convertDuration: DataTypes.INTEGER,
     },
     {
       sequelize,
