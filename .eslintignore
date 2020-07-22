@@ -6,6 +6,7 @@ package-lock.json
 **/*.spec.ts
 .eslintrc.js
 database/migrations/*
+public/
 
 ### Example user template template
 ### Example user template
