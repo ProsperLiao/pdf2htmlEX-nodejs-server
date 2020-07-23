@@ -1,5 +1,6 @@
 import indexRouter from './routes';
 import conversionsRouter from './routes/conversions';
+import { cleanTasks } from './utils/util';
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -7,6 +8,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import createError from 'http-errors';
 import logger from 'morgan';
+import cron from 'node-cron';
 
 import path from 'path';
 
@@ -23,6 +25,13 @@ class App {
     this.configure();
     this.mountRoutes();
     this.afterMountRoutes();
+
+    // schedule to delete old tasks to save disk storage， every day a 2:30 am
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    cron.schedule('* 30 2 * * *', async () => {
+      console.log('[***] running scheduler at 2:30 AM every day, to delete all the tasks exceeds 2 days.');
+      await cleanTasks();
+    });
   }
 
   /**
