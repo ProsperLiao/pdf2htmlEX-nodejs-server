@@ -78,7 +78,10 @@ pdf2htmlEX_data 为pdf转换为 html 时使用的数据文件，包括html模板
 
 
 #参考文档
-- https://github.com/coolwanglu/pdf2htmlEX/wiki/
-- https://github.com/pdf2htmlEX/pdf2htmlEX
 - https://www.itread01.com/content/1548397099.html
 - https://www.cnblogs.com/zhuchenglin/p/7363214.html
+- https://github.com/coolwanglu/pdf2htmlEX/wiki/
+- https://github.com/pdf2htmlEX/pdf2htmlEX
+- https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
+- https://github.com/fagbokforlaget/pdftohtmljs/blob/master/lib/pdftohtml.js
+

@@ -26,14 +26,14 @@ const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
       dir = fileName.slice(0, -basename.length),
       dest = `${dir}${basename}`;
 
-    return new Promise((resolve: (value?: { convertedFilePath: string }) => void, reject) => {
+    return new Promise((resolve: (value?: { dest: string }) => void, reject) => {
       const pdf2HtmlEx = new Pdf2HtmlEx(src, dest, options);
       pdf2HtmlEx.progress(progressHandler);
       pdf2HtmlEx
         .convert()
         .then(ret => {
           console.log(ret);
-          resolve({ convertedFilePath: dest });
+          resolve({ dest });
         })
         .catch(e => {
           console.log(e);
@@ -42,7 +42,6 @@ const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
     });
   },
   zip = async (convertedPath: string, splitPages: boolean) => {
-    console.log(convertedPath, splitPages);
     const output = fs.createWriteStream(`${convertedPath}.zip`),
       archive = archiver('zip');
     output.on('close', function () {
@@ -89,8 +88,10 @@ pdf2HtmlQueue.process(async job => {
       },
       pathObj = await convertPdf2Html(path, options, progressHandler),
       duration = (Date.now() - start) / 1000,
-      { convertedFilePath } = pathObj,
-      zipFilePath = await zip(convertedFilePath, options['--split-pages']),
+      { dest } = pathObj,
+      zipFilePath = await zip(dest, options['--split-pages']),
+      originFileName = conv.originFileName.replace(/.pdf/g, ''),
+      convertedFilePath = `${dest}${conv.splitPages ? `/${originFileName}.html` : '.html'}`,
       conversion = await models.Pdf2HtmlConversion.update(
         { convertedFilePath, status: 'done', convertDuration: duration, zipFilePath },
         {

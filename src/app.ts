@@ -10,6 +10,10 @@ import logger from 'morgan';
 
 import path from 'path';
 
+const env = process.env.NODE_ENV || 'development';
+
+export const isDev = env === 'development';
+
 class App {
   public express: express.Express;
 
@@ -31,7 +35,8 @@ class App {
     this.express.use(cors());
     this.express.use(express.json());
     this.express.use(cookieParser());
-    this.express.use(express['static'](path.resolve(__dirname, '../public')));
+    this.express.use('/public', express['static'](path.resolve(__dirname, isDev ? '../public' : './public')));
+    this.express.use(express['static'](path.resolve(__dirname, isDev ? '../public/assets' : './public/assets')));
     this.express.use(logger('dev'));
 
     // view engine setup

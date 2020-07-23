@@ -56,12 +56,12 @@ router.post('/conversion', upload, async (req, res, _next) => {
       message: 'No file uploaded',
     });
   }
-  const splitPage = req.body['split_pages'],
+  const splitPages = req.body['split_pages'],
     _data = {
       ...req.body,
       originFileName: req.file.originalname,
-      filePath: req.file.path,
-      splitPage: !(splitPage !== undefined && (splitPage === '0' || splitPage === 'false')),
+      filePath: `./${req.file.path}`,
+      splitPages: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
     },
     conversion = await models.Pdf2HtmlConversion.create(_data);
   res.status(201).json({
@@ -78,12 +78,12 @@ router.post('/sync_conversion', upload, async (req, res, next) => {
       message: 'No file uploaded',
     });
   }
-  const splitPage = req.body['split_pages'],
+  const splitPages = req.body['split_pages'],
     _data = {
       ...req.body,
       originFileName: req.file.originalname,
-      filePath: req.file.path,
-      splitPage: !(splitPage !== undefined && (splitPage === '0' || splitPage === 'false')),
+      filePath: `./${req.file.path}`,
+      splitPage: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
     },
     conversion = await models.Pdf2HtmlConversion.create(_data),
     { id } = conversion;
@@ -97,9 +97,9 @@ router.post('/sync_conversion', upload, async (req, res, next) => {
     );
     await pdf2HtmlQueue.add({
       id,
-      path: `./${conversion.filePath}`,
+      path: conversion.filePath,
       options: {
-        '--split-pages': conversion.splitPage,
+        '--split-pages': conversion.splitPages,
       },
     });
   } catch (error) {
@@ -189,9 +189,9 @@ router.get('/conversion/:id/start', async (req, res, next) => {
     );
     await pdf2HtmlQueue.add({
       id,
-      path: `./${conversion.filePath}`,
+      path: conversion.filePath,
       options: {
-        '--split-pages': conversion.splitPage,
+        '--split-pages': conversion.splitPages,
       },
     });
   } catch (error) {

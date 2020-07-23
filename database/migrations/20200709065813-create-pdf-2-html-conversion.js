@@ -20,7 +20,7 @@ module.exports = {
       zipFilePath: {
         type: Sequelize.STRING
       },
-      splitPage: {
+      splitPages: {
         type: {
           types: Sequelize.BOOLEAN,
           defaultValue: true

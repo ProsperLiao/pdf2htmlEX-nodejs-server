@@ -5,23 +5,14 @@ $(function () {
     $.ajax('/api/conversion').then(data => {
       $('#tasks-list').empty();
       $.each(data, function (i, task) {
-        var convertedFilePath = '';
-        if (!!task.convertedFilePath) {
-          convertedFilePath =  task.convertedFilePath.replace('./public', '');
-        }
-        if (task.splitPage) {
-          convertedFilePath = convertedFilePath + '/' + task.originFileName.replace(/\.[^/.]+$/, '') + '.html';
-        } else {
-          convertedFilePath = convertedFilePath + '.html';
-        }
         var taskDiv = `
             <tr>
               <td>${task.id}</td>
               <td>${task.originFileName}</td>
-              <td>${task.filePath ?  `<a href="${task.filePath.replace('public/', '')}" target="_blank">Open</a>` : "Not Available"}</td>
-              <td>${task.convertedFilePath ? `<a href="${convertedFilePath}" target="_blank">Open</a>` : "Not Available"}</td>
-              <td>${task.zipFilePath ?  `<a href="${task.zipFilePath.replace('public/', '')}" target="_blank">Download</a>` : "Not Available"}</td>
-              <td>${task.splitPage}</td>
+              <td>${task.filePath ?  `<a href="${task.filePath}" target="_blank">Open</a>` : "Not Available"}</td>
+              <td>${task.convertedFilePath ? `<a href="${task.convertedFilePath}" target="_blank">Open</a>` : "Not Available"}</td>
+              <td>${task.zipFilePath ?  `<a href="${task.zipFilePath}" target="_blank">Download</a>` : "Not Available"}</td>
+              <td>${task.splitPages}</td>
               <td>${task.status}</td>
               <td>${task.current}/${task.total}</td>
               <td>${task.convertDuration}</td>

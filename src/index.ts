@@ -23,13 +23,3 @@ app.listen(PORT, error => {
   }
   return console.log(`The server is listening on port ${PORT}`);
 });
-
-// I'm just browsing this repo but wanted to comment that you can use any CLI tool from Node with the built-in child_process module. This is an important thing to know doing Node development.
-//
-// quick demo:
-//
-//     const { exec, /* or spawn */ } = require('child_process')
-// exec('pdf2htmlEX [options] <input-filename> [<output-filename>]', callback)
-// Longer explanations:
-//     https://stackoverflow.com/questions/20643470/execute-a-command-line-binary-with-node-js
-//         https://nodejs.org/api/child_process.html

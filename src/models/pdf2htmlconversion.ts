@@ -21,7 +21,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
       filePath: DataTypes.STRING,
       convertedFilePath: DataTypes.STRING,
       zipFilePath: DataTypes.STRING,
-      splitPage: {
+      splitPages: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
       },
