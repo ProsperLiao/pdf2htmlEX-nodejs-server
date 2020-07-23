@@ -90,7 +90,7 @@ pdf2HtmlQueue.process(async job => {
       duration = (Date.now() - start) / 1000,
       { dest } = pathObj,
       zipFilePath = await zip(dest, options['--split-pages']),
-      originFileName = conv.originFileName.replace(/.pdf/g, ''),
+      originFileName = conv.originFileName.replace(/\.[^/.]+$/, ''),
       convertedFilePath = `${dest}${conv.splitPages ? `/${originFileName}.html` : '.html'}`,
       conversion = await models.Pdf2HtmlConversion.update(
         { convertedFilePath, status: 'done', convertDuration: duration, zipFilePath },
