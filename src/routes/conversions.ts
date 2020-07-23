@@ -8,14 +8,39 @@
  */
 import models from '../models';
 import pdf2HtmlQueue from '../queues/pdf2htmlQueue';
+import { addToSyncConversion, removeFromSyncConversion } from '../utils/syncConversion';
 
-import express from 'express';
+import express, { NextFunction, Response } from 'express';
 import createError from 'http-errors';
 import multer from 'multer';
 
 import fs from 'fs';
 import path from 'path';
 
+const syncConversion = async (conversion: any, res: Response, next: NextFunction) => {
+  const { id } = conversion;
+  try {
+    await models.Pdf2HtmlConversion.update(
+      { status: 'pending' },
+      {
+        where: { id },
+      },
+    );
+    addToSyncConversion(id, res);
+    await pdf2HtmlQueue.add({
+      id,
+      path: conversion.filePath,
+      options: {
+        '--split-pages': conversion.splitPages,
+      },
+    });
+  } catch (error) {
+    removeFromSyncConversion(id);
+    next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
+  }
+};
+
+// eslint-disable-next-line one-var
 const router = express.Router(),
   // setup multer
   storage = multer.diskStorage({
@@ -49,7 +74,7 @@ router.get('/conversion', async (req, res, _next) => {
   res.json(conversions);
 });
 
-router.post('/conversion', upload, async (req, res, _next) => {
+router.post('/conversion', upload, async (req, res, next) => {
   if (!req.file) {
     res.send({
       status: false,
@@ -63,50 +88,21 @@ router.post('/conversion', upload, async (req, res, _next) => {
       filePath: `./${req.file.path}`,
       splitPages: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
     },
-    conversion = await models.Pdf2HtmlConversion.create(_data);
-  res.status(201).json({
-    message: 'Upload Successfully!',
-    task: conversion,
-    href: `/api/conversion/${conversion.id}/start`,
-  });
-});
-
-router.post('/sync_conversion', upload, async (req, res, next) => {
-  if (!req.file) {
-    res.send({
-      status: false,
-      message: 'No file uploaded',
-    });
-  }
-  const splitPages = req.body['split_pages'],
-    _data = {
-      ...req.body,
-      originFileName: req.file.originalname,
-      filePath: `./${req.file.path}`,
-      splitPage: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
-    },
     conversion = await models.Pdf2HtmlConversion.create(_data),
-    { id } = conversion;
-
-  try {
-    await models.Pdf2HtmlConversion.update(
-      { status: 'pending' },
-      {
-        where: { id },
-      },
-    );
-    await pdf2HtmlQueue.add({
-      id,
-      path: conversion.filePath,
-      options: {
-        '--split-pages': conversion.splitPages,
+    { active, waiting } = await pdf2HtmlQueue.getJobCounts();
+  if (req.file.size < 2 * 1024 * 1024 && active === 0 && waiting === 0) {
+    // convert in sync mode
+    await syncConversion(conversion, res, next);
+  } else {
+    res.status(201).json({
+      message: 'Upload Successfully!',
+      task: conversion,
+      href: {
+        start: `/api/conversion/${conversion.id}/start`,
+        checkStatus: `/api/conversion/${conversion.id}`,
       },
     });
-  } catch (error) {
-    next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
-    return;
   }
-  res.json(conversion);
 });
 
 router.get('/conversion/:id', async (req, res, next) => {
@@ -159,11 +155,20 @@ router.put('/conversion/:id/cancel', async (req, res, _next) => {
       {
         where: { id, status: 'pending' },
       },
-    );
-  res.json({
-    message: 'Cancel Successfully!',
-    task: conversion,
-  });
+    ),
+    count = conversion[0];
+
+  if (count === 0) {
+    res.status(400).send(`Fail to cancel. There is no pending task for this id ${id}.`);
+  } else {
+    res.json({
+      message: 'Cancel Successfully!',
+      task: conversion,
+      href: {
+        checkStatus: `/api/conversion/${conversion.id}`,
+      },
+    });
+  }
 });
 
 router.get('/conversion/:id/start', async (req, res, next) => {
@@ -201,7 +206,9 @@ router.get('/conversion/:id/start', async (req, res, next) => {
     message: 'Start Successfully!',
     task: conversion,
     id,
-    href: `/api/conversion/${conversion.id}`,
+    href: {
+      checkStatus: `/api/conversion/${conversion.id}`,
+    },
   });
 });
 

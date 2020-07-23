@@ -7,6 +7,7 @@
 */
 import models from '../models';
 import { Pdf2HtmlEx, AdditionalOptions, Pdf2HtmlProgressObj } from '../pdf2htmljs/pdf2html';
+import { responseToSyncConversion } from '../utils/syncConversion';
 
 import archiver from 'archiver';
 import Queue from 'bull';
@@ -44,11 +45,11 @@ const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
   zip = async (convertedPath: string, splitPages: boolean) => {
     const output = fs.createWriteStream(`${convertedPath}.zip`),
       archive = archiver('zip');
-    output.on('close', function () {
+    output.on('close', () => {
       console.log(`${archive.pointer()} total bytes`);
       console.log('archiver has been finalized and the output file descriptor has closed.');
     });
-    archive.on('error', function (err) {
+    archive.on('error', err => {
       throw err;
     });
     archive.pipe(output);
@@ -98,8 +99,10 @@ pdf2HtmlQueue.process(async job => {
           where: { id },
         },
       );
+    await responseToSyncConversion(id, zipFilePath);
     await conversion;
   } catch (error) {
+    await responseToSyncConversion(id);
     await Promise.reject(error);
   }
 });

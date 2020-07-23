@@ -106,6 +106,7 @@ $(function () {
     }).done(function(data) {
       $('#validatedCustomFile').val('');
       $('#validatedCustomFile').next('.custom-file-label').html('Choose file...');
+      $('#upload_button').attr('disabled', false);
       getTasks();
     });
   });
