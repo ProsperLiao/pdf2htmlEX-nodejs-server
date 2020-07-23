@@ -1,6 +1,16 @@
-var getTasks, startTask, cancelTask, deleteTask;
+var getTasks, startTask, cancelTask, deleteTask, formatBytes;
 
 $(function () {
+
+  formatBytes = function(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024,
+      dm = decimals < 0 ? 0 : decimals,
+      sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+      i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
+  }
+
   getTasks = function() {
     $.ajax('/api/conversion').then(data => {
       $('#tasks-list').empty();
@@ -9,6 +19,7 @@ $(function () {
             <tr>
               <td>${task.id}</td>
               <td>${task.originFileName}</td>
+              <td>${formatBytes(task.originFileSize)}</td>
               <td>${task.filePath ?  `<a href="${task.filePath}" target="_blank">Open</a>` : "Not Available"}</td>
               <td>${task.convertedFilePath ? `<a href="${task.convertedFilePath}" target="_blank">Open</a>` : "Not Available"}</td>
               <td>${task.zipFilePath ?  `<a href="${task.zipFilePath}" target="_blank">Download</a>` : "Not Available"}</td>

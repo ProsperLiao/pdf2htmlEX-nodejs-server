@@ -18,6 +18,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
   Pdf2HtmlConversion.init(
     {
       originFileName: DataTypes.STRING,
+      originFileSize: DataTypes.STRING,
       filePath: DataTypes.STRING,
       convertedFilePath: DataTypes.STRING,
       zipFilePath: DataTypes.STRING,

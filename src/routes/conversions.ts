@@ -4,11 +4,14 @@
     @typescript-eslint/no-unsafe-call,
     @typescript-eslint/no-unsafe-assignment,
     @typescript-eslint/no-unsafe-member-access,
-    prefer-arrow/prefer-arrow-functions
+    prefer-arrow/prefer-arrow-functions,
+    id-blacklist,
+    no-nested-ternary
  */
 import models from '../models';
 import pdf2HtmlQueue from '../queues/pdf2htmlQueue';
 import { addToSyncConversion, removeFromSyncConversion } from '../utils/syncConversion';
+import { formatBytes } from '../utils/util';
 
 import express, { NextFunction, Response } from 'express';
 import createError from 'http-errors';
@@ -18,27 +21,43 @@ import fs from 'fs';
 import path from 'path';
 
 const syncConversion = async (conversion: any, res: Response, next: NextFunction) => {
-  const { id } = conversion;
-  try {
-    await models.Pdf2HtmlConversion.update(
-      { status: 'pending' },
-      {
-        where: { id },
-      },
-    );
-    addToSyncConversion(id, res);
-    await pdf2HtmlQueue.add({
-      id,
-      path: conversion.filePath,
-      options: {
-        '--split-pages': conversion.splitPages,
-      },
+    const { id } = conversion;
+    try {
+      await models.Pdf2HtmlConversion.update(
+        { status: 'pending' },
+        {
+          where: { id },
+        },
+      );
+      addToSyncConversion(id, res);
+      await pdf2HtmlQueue.add({
+        id,
+        path: conversion.filePath,
+        options: {
+          '--split-pages': conversion.splitPages,
+        },
+        originFileSize: conversion.originFileSize,
+      });
+    } catch (error) {
+      removeFromSyncConversion(id);
+      next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
+    }
+  },
+  getJobsSize = async () => {
+    const jobs = await pdf2HtmlQueue.getJobs(['waiting', 'active']);
+    let total = 0;
+    jobs.forEach(job => {
+      const { originFileSize } = job.data;
+      total += originFileSize;
     });
-  } catch (error) {
-    removeFromSyncConversion(id);
-    next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
-  }
-};
+    return total;
+  },
+  getTryAfterSeconds = async () => {
+    const bytesPerSeconds = 60 * 1024,
+      total = await getJobsSize(),
+      seconds = Math.round(total / bytesPerSeconds);
+    return seconds;
+  };
 
 // eslint-disable-next-line one-var
 const router = express.Router(),
@@ -85,6 +104,7 @@ router.post('/conversion', upload, async (req, res, next) => {
     _data = {
       ...req.body,
       originFileName: req.file.originalname,
+      originFileSize: req.file.size,
       filePath: `./${req.file.path}`,
       splitPages: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
     },
@@ -94,14 +114,44 @@ router.post('/conversion', upload, async (req, res, next) => {
     // convert in sync mode
     await syncConversion(conversion, res, next);
   } else {
-    res.status(201).json({
-      message: 'Upload Successfully!',
-      task: conversion,
-      href: {
-        start: `/api/conversion/${conversion.id}/start`,
-        checkStatus: `/api/conversion/${conversion.id}`,
-      },
-    });
+    const { id } = conversion;
+    // start it immediately!
+    try {
+      await models.Pdf2HtmlConversion.update(
+        { status: 'pending' },
+        {
+          where: { id },
+        },
+      );
+      await pdf2HtmlQueue.add({
+        id,
+        path: conversion.filePath,
+        options: {
+          '--split-pages': conversion.splitPages,
+        },
+        originFileSize: conversion.originFileSize,
+      });
+
+      res.status(202).json({
+        message: 'The pdf file has been uploaded, and converting task is pending for the processing queue!',
+        task: conversion,
+        id,
+        href: {
+          checkStatus: `/api/conversion/${conversion.id}`,
+        },
+        try_after_seconds: await getTryAfterSeconds(),
+      });
+    } catch (error) {
+      // If fail to start the task, client need to start it manually.
+      res.status(201).json({
+        message: 'Upload Successfully! Please start the task manually!',
+        task: conversion,
+        href: {
+          start: `/api/conversion/${conversion.id}/start`,
+          checkStatus: `/api/conversion/${conversion.id}`,
+        },
+      });
+    }
   }
 });
 
@@ -115,6 +165,28 @@ router.get('/conversion/:id', async (req, res, next) => {
     return;
   }
   const conversion = conversions[0];
+  if (conversion.status !== 'done') {
+    const message =
+      conversion.status === 'uploaded'
+        ? 'Please start the task first!'
+        : conversion.status === 'pending'
+        ? 'The converting task is pending for processing! Please try later.'
+        : conversion.status === 'converting'
+        ? 'The task is processing, please try later.'
+        : conversion.status === 'cancelled'
+        ? 'The task is cancelled.'
+        : '';
+    res.status(202).json({
+      message,
+      task: conversion,
+      id,
+      href: {
+        checkStatus: `/api/conversion/${conversion.id}`,
+      },
+      try_after_seconds: await getTryAfterSeconds(),
+    });
+    return;
+  }
   res.json(conversion);
 });
 
@@ -198,17 +270,19 @@ router.get('/conversion/:id/start', async (req, res, next) => {
       options: {
         '--split-pages': conversion.splitPages,
       },
+      originFileSize: conversion.originFileSize,
     });
   } catch (error) {
     next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
   }
   res.status(202).json({
-    message: 'Start Successfully!',
+    message: 'The converting task has been started successfully for processing!',
     task: conversion,
     id,
     href: {
       checkStatus: `/api/conversion/${conversion.id}`,
     },
+    try_after_seconds: await getTryAfterSeconds(),
   });
 });
 
@@ -223,7 +297,25 @@ router.get('/conversion/:id/download', async (req, res, next) => {
   }
   const conversion = conversions[0];
   if (conversion.status !== 'done') {
-    next(createError(400, "It's not done yet!")); // eslint-disable-line
+    const message =
+      conversion.status === 'uploaded'
+        ? 'Please start the task first!'
+        : conversion.status === 'pending'
+        ? 'The converting task is pending for processing! Please try later.'
+        : conversion.status === 'converting'
+        ? 'The task is processing, please try later.'
+        : conversion.status === 'cancelled'
+        ? 'The task is cancelled.'
+        : '';
+    res.status(202).json({
+      message,
+      task: conversion,
+      id,
+      href: {
+        checkStatus: `/api/conversion/${conversion.id}`,
+      },
+      try_after_seconds: await getTryAfterSeconds(),
+    });
     return;
   }
   res.download(conversion.zipFilePath);
