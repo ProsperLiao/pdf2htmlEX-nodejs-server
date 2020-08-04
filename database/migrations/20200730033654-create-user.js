@@ -14,6 +14,9 @@ module.exports = {
       password: {
         type: Sequelize.STRING
       },
+      desc: {
+        type: Sequelize.STRING
+      },
       role: {
         type: Sequelize.ENUM,
         values: ["Admin", "User"],

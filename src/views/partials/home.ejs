@@ -1,6 +1,6 @@
 <div class="home">
     <h1 class="text-center">Convert PDF to Html</h1>
-    <form id="uploadForm" class="mb-3" enctype="multipart/form-data" action="/api/conversion" method="post">
+    <form id="uploadForm" class="mb-3" enctype="multipart/form-data" action="/api/conversions" method="post">
         <div class="custom-file mb-3">
             <input type="file" class="custom-file-input" id="validatedCustomFile" name="uploaded_file" required>
             <label class="custom-file-label" for="validatedCustomFile">Choose file...</label>
@@ -11,7 +11,7 @@
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="split_pages" id="exampleRadios1" value="true" checked>
                 <label class="form-check-label" for="exampleRadios1">
-                    是
+                    是 (推荐)
                 </label>
             </div>
             <div class="form-check">

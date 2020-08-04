@@ -1,0 +1,57 @@
+<div class="user">
+    <h1 class="text-center">Manage User</h1>
+    <form id="userForm" class="mb-3" enctype="x-www-form-urlencoded" action="/api/users" method="post">
+        <div class="form-group row">
+            <label for="username" class="col-sm-2 col-form-label">Username</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="username" name="username" placeholder="username">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="password" class="col-sm-2 col-form-label">Password</label>
+            <div class="col-sm-10">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Password">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="desc" class="col-sm-2 col-form-label">Description</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="desc" name="desc" placeholder="Description for this user">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label class="col-sm-2 col-form-label">Role</label>
+            <div class="col-sm-10">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="role" id="exampleRadios1" value="Admin">
+                <label class="form-check-label" for="exampleRadios1">
+                    Admin
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="role" id="exampleRadios2" value="User" checked>
+                <label class="form-check-label" for="exampleRadios2">
+                    User
+                </label>
+            </div>
+            </div>
+        </div>
+        <input type="submit" value="Create User" class="btn btn-primary" id="user_submit_button">
+    </form>
+
+    <br />
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">username</th>
+            <th scope="col">description</th>
+            <th scope="col">role</th>
+            <th scope="col">Actions</th>
+            <th scope="col">CreatedAt</th>
+        </tr>
+        </thead>
+        <tbody id="users-list">
+        </tbody>
+    </table>
+</div>

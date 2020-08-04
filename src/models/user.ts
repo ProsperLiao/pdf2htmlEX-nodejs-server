@@ -21,6 +21,7 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
     {
       username: DataTypes.STRING,
       password: DataTypes.STRING,
+      desc: DataTypes.STRING,
       role: {
         type: DataTypes.ENUM(Role.Admin, Role.User),
         defaultValue: Role.User,

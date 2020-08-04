@@ -8,6 +8,9 @@
             <li class="nav-item <%- page === 'home' ? 'active' : '' %>">
                 <a class="nav-link" href="/">Home<% if(page === 'home') { %><span class="sr-only">(current)</span><% } %></a>
             </li>
+            <li class="nav-item <%- page === 'users' ? 'active' : ''%>">
+                <a class="nav-link" href="/users">Users<% if(page === 'users') { %><span class="sr-only">(current)</span><% } %></a>
+            </li>
             <li class="nav-item <%- page === 'api' ? 'active' : ''%>">
                 <a class="nav-link" href="api.html">API<% if(page === 'api') { %><span class="sr-only">(current)</span><% } %></a>
             </li>

@@ -6,8 +6,10 @@
 <body>
 <%- include('partials/header', { page }) %>
 <div class="container-fluid bg-3">
-    <% if (page === 'error') { %>
+    <% if ( page === 'error' ) { %>
         <%- include('partials/error', { errno, url, errmsg }) %>
+    <% } else if ( page === 'users') { %>
+        <%- include('partials/user') %>
     <% } else { %>
         <%- include('partials/home')%>
     <% } %>

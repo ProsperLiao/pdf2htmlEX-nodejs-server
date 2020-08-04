@@ -7,4 +7,8 @@ router.get('/', (req, res, _next) => {
   res.render('index', { page: 'home' });
 });
 
+router.get('/users', (req, res, next) => {
+  res.render('index', { page: 'users' });
+});
+
 export = router;
