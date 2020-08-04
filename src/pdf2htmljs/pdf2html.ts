@@ -1,5 +1,4 @@
 /* eslint-disable
-    id-blacklist,
      @typescript-eslint/member-delimiter-style,
      @typescript-eslint/explicit-module-boundary-types
 */

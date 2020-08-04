@@ -1,5 +1,4 @@
 /* eslint-disable
-    id-blacklist,
     @typescript-eslint/no-unused-vars,
     @typescript-eslint/no-floating-promises,
     consistent-return,

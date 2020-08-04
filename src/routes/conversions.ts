@@ -5,13 +5,11 @@
     @typescript-eslint/no-unsafe-assignment,
     @typescript-eslint/no-unsafe-member-access,
     prefer-arrow/prefer-arrow-functions,
-    id-blacklist,
     no-nested-ternary
  */
 import models from '../models';
 import pdf2HtmlQueue from '../queues/pdf2htmlQueue';
 import { addToSyncConversion, removeFromSyncConversion } from '../utils/syncConversion';
-import { formatBytes } from '../utils/util';
 
 import express, { NextFunction, Response } from 'express';
 import createError from 'http-errors';
@@ -54,9 +52,8 @@ const syncConversion = async (conversion: any, res: Response, next: NextFunction
   },
   getTryAfterSeconds = async () => {
     const bytesPerSeconds = 60 * 1024,
-      total = await getJobsSize(),
-      seconds = Math.round(total / bytesPerSeconds);
-    return seconds;
+      total = await getJobsSize();
+    return Math.round(total / bytesPerSeconds);
   };
 
 // eslint-disable-next-line one-var
@@ -87,13 +84,13 @@ const router = express.Router(),
     },
   }).single('uploaded_file');
 
-router.get('/conversion', async (req, res, _next) => {
+router.get('/', async (req, res, _next) => {
   // eslint-disable-next-line
   const conversions = await models.Pdf2HtmlConversion.findAll();
   res.json(conversions);
 });
 
-router.post('/conversion', upload, async (req, res, next) => {
+router.post('/', upload, async (req, res, next) => {
   if (!req.file) {
     res.send({
       status: false,
@@ -155,7 +152,7 @@ router.post('/conversion', upload, async (req, res, next) => {
   }
 });
 
-router.get('/conversion/:id', async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
   const { id } = req.params,
     conversions = await models.Pdf2HtmlConversion.findAll({
       where: { id },
@@ -190,7 +187,7 @@ router.get('/conversion/:id', async (req, res, next) => {
   res.json(conversion);
 });
 
-router['delete']('/conversion/:id', async (req, res, next) => {
+router['delete']('/:id', async (req, res, next) => {
   const { id } = req.params,
     conversions = await models.Pdf2HtmlConversion.findAll({
       where: { id },
@@ -220,7 +217,7 @@ router['delete']('/conversion/:id', async (req, res, next) => {
   });
 });
 
-router.put('/conversion/:id/cancel', async (req, res, _next) => {
+router.put('/:id/cancel', async (req, res, _next) => {
   const { id } = req.params,
     conversion = await models.Pdf2HtmlConversion.update(
       { status: 'cancelled' },
@@ -243,7 +240,7 @@ router.put('/conversion/:id/cancel', async (req, res, _next) => {
   }
 });
 
-router.get('/conversion/:id/start', async (req, res, next) => {
+router.get('/:id/start', async (req, res, next) => {
   const { id } = req.params,
     conversions = await models.Pdf2HtmlConversion.findAll({
       where: { id },
@@ -286,7 +283,7 @@ router.get('/conversion/:id/start', async (req, res, next) => {
   });
 });
 
-router.get('/conversion/:id/download', async (req, res, next) => {
+router.get('/:id/download', async (req, res, next) => {
   const { id } = req.params,
     conversions = await models.Pdf2HtmlConversion.findAll({
       where: { id },

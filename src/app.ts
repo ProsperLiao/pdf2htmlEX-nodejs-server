@@ -1,5 +1,8 @@
 import indexRouter from './routes';
 import conversionsRouter from './routes/conversions';
+import usersRouter from './routes/users';
+import errorHandler from './utils/error-handler';
+import responseHandler from './utils/response-handler';
 import { cleanTasks } from './utils/util';
 
 import cookieParser from 'cookie-parser';
@@ -24,9 +27,9 @@ class App {
 
     this.configure();
     this.mountRoutes();
-    this.afterMountRoutes();
+    this.userHandlers();
 
-    // schedule to delete old tasks to save disk storage， every day a 2:30 am
+    // schedule to delete old tasks to save disk storage， every day at 2:30 am
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     cron.schedule('* 30 2 * * *', async () => {
       console.log('[***] running scheduler at 2:30 AM every day, to delete all the tasks exceeds 2 days.');
@@ -43,6 +46,7 @@ class App {
     this.express.use(helmet());
     this.express.use(cors());
     this.express.use(express.json());
+    this.express.use(express.urlencoded({ extended: true }));
     this.express.use(cookieParser());
     this.express.use('/public', express['static'](path.resolve(__dirname, isDev ? '../public' : './public')));
     this.express.use(express['static'](path.resolve(__dirname, isDev ? '../public/assets' : './public/assets')));
@@ -55,26 +59,15 @@ class App {
 
   private mountRoutes() {
     this.express.use('/', indexRouter);
-    this.express.use('/api', conversionsRouter);
+    this.express.use('/api/conversions', conversionsRouter);
+    this.express.use('/api/users', usersRouter);
   }
 
-  private afterMountRoutes() {
-    // catch 404 and forward to error handler
-    this.express.use((req, res, next) => {
-      next(createError(404, 'not found!'));
-    });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    this.express.use((error: any, req: Request, res: Response, _next: NextFunction) => {
-      // set locals, only providing error in development
-      res.locals.message = error.message;
-      res.locals.error = req.app.get('env') === 'development' ? error : {};
-      res.status(error.status || 500);
-      if (req.path.indexOf('api') !== -1) {
-        res.json(error);
-      } else {
-        res.render('index', { page: 'error', url: req.url, errno: error.status || 500, errmsg: error.message });
-      }
-    });
+  private userHandlers() {
+    // global response handler
+    this.express.use(responseHandler);
+    // global error handler
+    this.express.use(errorHandler);
   }
 }
 

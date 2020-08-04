@@ -99,7 +99,7 @@ module.exports = {
     complexity: ['error', { max: 10 }],
     eqeqeq: ['error', 'smart'],
     'guard-for-in': 'error',
-    'id-blacklist': ['error', 'data', 'err', 'e', 'cb', 'callback'],
+    // 'id-blacklist': ['error', 'data', 'err', 'e', 'cb', 'callback'],
     'import/no-deprecated': 'warn',
     'import/order': [
       'error',
