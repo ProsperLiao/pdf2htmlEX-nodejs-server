@@ -6,7 +6,7 @@
 */
 import models from '../models';
 import { Pdf2HtmlEx, AdditionalOptions, Pdf2HtmlProgressObj } from '../pdf2htmljs/pdf2html';
-import { responseToSyncConversion } from '../utils/syncConversion';
+import { responseToSyncConversion } from '../utils';
 
 import archiver from 'archiver';
 import Queue from 'bull';

@@ -9,7 +9,7 @@
  */
 import models from '../models';
 import pdf2HtmlQueue from '../queues/pdf2htmlQueue';
-import { addToSyncConversion, removeFromSyncConversion } from '../utils/syncConversion';
+import { addToSyncConversion, removeFromSyncConversion, Role } from '../utils';
 
 import express, { NextFunction, Response } from 'express';
 import createError from 'http-errors';
@@ -84,10 +84,19 @@ const router = express.Router(),
     },
   }).single('uploaded_file');
 
-router.get('/', async (req, res, _next) => {
+router.get('/', async (req, res, next) => {
   // eslint-disable-next-line
-  const conversions = await models.Pdf2HtmlConversion.findAll();
-  res.json(conversions);
+  try {
+    if (req.currentUser.role === Role.Admin) {
+      const conversions = await models.Pdf2HtmlConversion.findAll();
+      res.json(conversions);
+    } else {
+      const conversions = await models.Pdf2HtmlConversion.findAll({ where: { creator_id: req.currentUser.id } });
+      res.json(conversions);
+    }
+  } catch (error) {
+    next(createError(500, error.message));
+  }
 });
 
 router.post('/', upload, async (req, res, next) => {
@@ -104,6 +113,8 @@ router.post('/', upload, async (req, res, next) => {
       originFileSize: req.file.size,
       filePath: `./${req.file.path}`,
       splitPages: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
+      creator_id: req.currentUser.id,
+      creator_username: req.currentUser.username,
     },
     conversion = await models.Pdf2HtmlConversion.create(_data),
     { active, waiting } = await pdf2HtmlQueue.getJobCounts();
@@ -153,15 +164,23 @@ router.post('/', upload, async (req, res, next) => {
 });
 
 router.get('/:id', async (req, res, next) => {
-  const { id } = req.params,
-    conversions = await models.Pdf2HtmlConversion.findAll({
-      where: { id },
-    });
+  const { id } = req.params;
+  let conversions = await models.Pdf2HtmlConversion.findAll({
+    where: { id },
+  });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist'));
     return;
   }
+  if (req.currentUser.role !== Role.Admin) {
+    conversions = conversions.filter((c: any) => c.creator_id === req.currentUser.id);
+    if (conversions.length === 0) {
+      next(createError(400, 'Unauthorize to check this task.'));
+      return;
+    }
+  }
   const conversion = conversions[0];
+
   if (conversion.status !== 'done') {
     const message =
       conversion.status === 'uploaded'
@@ -188,13 +207,20 @@ router.get('/:id', async (req, res, next) => {
 });
 
 router['delete']('/:id', async (req, res, next) => {
-  const { id } = req.params,
-    conversions = await models.Pdf2HtmlConversion.findAll({
-      where: { id },
-    });
+  const { id } = req.params;
+  let conversions = await models.Pdf2HtmlConversion.findAll({
+    where: { id },
+  });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist.'));
     return;
+  }
+  if (req.currentUser.role !== Role.Admin) {
+    conversions = conversions.filter((c: any) => c.creator_id === req.currentUser.id);
+    if (conversions.length === 0) {
+      next(createError(400, 'Unauthorize to delete this task.'));
+      return;
+    }
   }
   const conversion = conversions[0];
   if (conversion.status === 'converting') {
@@ -218,14 +244,24 @@ router['delete']('/:id', async (req, res, next) => {
 });
 
 router.put('/:id/cancel', async (req, res, _next) => {
-  const { id } = req.params,
+  const { id } = req.params;
+  let conversion: any;
+  if (req.currentUser.role !== Role.Admin) {
+    conversion = await models.Pdf2HtmlConversion.update(
+      { status: 'cancelled' },
+      {
+        where: { id, status: 'pending', creator_id: req.currentUser.id },
+      },
+    );
+  } else {
     conversion = await models.Pdf2HtmlConversion.update(
       { status: 'cancelled' },
       {
         where: { id, status: 'pending' },
       },
-    ),
-    count = conversion[0];
+    );
+  }
+  const count = conversion[0];
 
   if (count === 0) {
     res.status(400).send(`Fail to cancel. There is no pending task for this id ${id}.`);
@@ -241,13 +277,20 @@ router.put('/:id/cancel', async (req, res, _next) => {
 });
 
 router.get('/:id/start', async (req, res, next) => {
-  const { id } = req.params,
-    conversions = await models.Pdf2HtmlConversion.findAll({
-      where: { id },
-    });
+  const { id } = req.params;
+  let conversions = await models.Pdf2HtmlConversion.findAll({
+    where: { id },
+  });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist'));
     return;
+  }
+  if (req.currentUser.role !== Role.Admin) {
+    conversions = conversions.filter((c: any) => c.creator_id === req.currentUser.id);
+    if (conversions.length === 0) {
+      next(createError(400, 'Unauthorize to start this task.'));
+      return;
+    }
   }
   const conversion = conversions[0];
   if (conversion.status !== 'uploaded' && conversion.status !== 'cancelled') {
@@ -284,13 +327,20 @@ router.get('/:id/start', async (req, res, next) => {
 });
 
 router.get('/:id/download', async (req, res, next) => {
-  const { id } = req.params,
-    conversions = await models.Pdf2HtmlConversion.findAll({
-      where: { id },
-    });
+  const { id } = req.params;
+  let conversions = await models.Pdf2HtmlConversion.findAll({
+    where: { id },
+  });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist'));
     return;
+  }
+  if (req.currentUser.role !== Role.Admin) {
+    conversions = conversions.filter((c: any) => c.creator_id === req.currentUser.id);
+    if (conversions.length === 0) {
+      next(createError(400, 'Unauthorize to download this task.'));
+      return;
+    }
   }
   const conversion = conversions[0];
   if (conversion.status !== 'done') {

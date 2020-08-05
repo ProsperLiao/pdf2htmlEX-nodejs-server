@@ -11,4 +11,8 @@ router.get('/users', (req, res, next) => {
   res.render('index', { page: 'users' });
 });
 
+router.get('/doc', (req, res, next) => {
+  res.render('index', { page: 'doc' });
+});
+
 export = router;

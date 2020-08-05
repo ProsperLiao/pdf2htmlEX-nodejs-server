@@ -33,6 +33,8 @@ module.exports = (sequelize: Sequelize, DataTypes: any) => {
       current: DataTypes.INTEGER,
       total: DataTypes.INTEGER,
       convertDuration: DataTypes.INTEGER,
+      creator_id: DataTypes.INTEGER,
+      creator_username: DataTypes.STRING,
     },
     {
       sequelize,

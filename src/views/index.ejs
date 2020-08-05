@@ -10,6 +10,8 @@
         <%- include('partials/error', { errno, url, errmsg }) %>
     <% } else if ( page === 'users') { %>
         <%- include('partials/user') %>
+    <% } else if ( page === 'doc' ) { %>
+        <%- include('partials/doc') %>
     <% } else { %>
         <%- include('partials/home')%>
     <% } %>

@@ -1,9 +1,18 @@
 import indexRouter from './routes';
 import conversionsRouter from './routes/conversions';
 import usersRouter from './routes/users';
-import errorHandler from './utils/error-handler';
-import responseHandler from './utils/response-handler';
-import { cleanTasks } from './utils/util';
+import {
+  authenticate,
+  authorize,
+  attachCurrentUser,
+  cleanTasks,
+  login,
+  logout,
+  doRefreshToken,
+  errorHandler,
+  responseHandler,
+  Role,
+} from './utils';
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -51,6 +60,9 @@ class App {
     this.express.use('/public', express['static'](path.resolve(__dirname, isDev ? '../public' : './public')));
     this.express.use(express['static'](path.resolve(__dirname, isDev ? '../public/assets' : './public/assets')));
     this.express.use(logger('dev'));
+    // use JWT auth to secure the api
+    this.express.use(authenticate());
+    this.express.use(attachCurrentUser);
 
     // view engine setup
     this.express.set('views', path.join(__dirname, 'views'));
@@ -59,8 +71,39 @@ class App {
 
   private mountRoutes() {
     this.express.use('/', indexRouter);
-    this.express.use('/api/conversions', conversionsRouter);
+    this.express.use('/api/conversions', authorize([Role.Admin, Role.User]), conversionsRouter);
     this.express.use('/api/users', usersRouter);
+    this.express.post('/api/login', async (req, res, next) => {
+      try {
+        const result = await login(req.body);
+        res.status(200);
+        res.data = { success: true, message: 'Login successfully.', data: result };
+        return next();
+      } catch (error) {
+        return next(createError(500, error.message));
+      }
+    });
+    this.express.post('/api/logout', authorize([Role.Admin, Role.User]), async (req, res, next) => {
+      try {
+        await logout(req.currentUser.id);
+        res.status(200);
+        res.data = { success: true, message: 'Logout successfully.' };
+        return next();
+      } catch (error) {
+        return next(createError(500, error.message));
+      }
+    });
+    // refresh accessToken with a valid refreshToken
+    this.express.post('/api/token', async (req, res, next) => {
+      try {
+        const result = await doRefreshToken(req.body);
+        res.status(200);
+        res.data = { success: true, message: 'Refresh token successfully.', data: result };
+        return next();
+      } catch (error) {
+        return next(createError(500, error.message));
+      }
+    });
   }
 
   private userHandlers() {

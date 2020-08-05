@@ -1,5 +1,6 @@
 import models from '../models';
-import { register, omitPassword } from '../utils/auth';
+import { Role } from '../utils';
+import { register, omitPassword, login, authorize } from '../utils/auth';
 
 import bcrypt from 'bcrypt';
 import express from 'express';
@@ -9,9 +10,14 @@ const Joi = require('joi');
 
 const router = express.Router();
 
-router.get('/', async (req, res, next) => {
+router.get('/', authorize([Role.Admin, Role.User]), async (req, res, next) => {
   try {
-    const users = await models.User.findAll({ raw: true });
+    let users: any;
+    if (req.currentUser.role === Role.Admin) {
+      users = await models.User.findAll({ raw: true });
+    } else {
+      users = await models.User.findAll({ raw: true, where: { id: req.currentUser.id } });
+    }
     res.data = { success: true, data: users.map(omitPassword) };
     return next();
   } catch (error) {
@@ -19,13 +25,16 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', authorize([Role.Admin, Role.User]), async (req, res, next) => {
   try {
-    const { id } = req.params,
-      user = await models.User.findOne({
-        raw: true,
-        where: { id },
-      });
+    const { id } = req.params;
+    if (req.currentUser.role !== Role.Admin && req.currentUser.id !== id) {
+      return next(createError(401, 'Unauthorized'));
+    }
+    const user = await models.User.findOne({
+      raw: true,
+      where: { id },
+    });
     if (!user) {
       return next(createError(404, `User with id ${id} is not exist`));
     }
@@ -36,7 +45,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', authorize(Role.Admin), async (req, res, next) => {
   try {
     const user = await register(req.body);
     res.status(201);
@@ -47,13 +56,16 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id/password', async (req, res, next) => {
+router.put('/:id/password', authorize([Role.Admin, Role.User]), async (req, res, next) => {
   try {
-    const { id } = req.params,
-      user = await models.User.findOne({
-        raw: true,
-        where: { id },
-      });
+    const { id } = req.params;
+    if (req.currentUser.role !== Role.Admin && req.currentUser.id !== id) {
+      return next(createError(401, 'Unauthorized'));
+    }
+    const user = await models.User.findOne({
+      raw: true,
+      where: { id },
+    });
     if (!user) {
       return next(createError(404, `User with id ${id} is not exist`));
     }
@@ -79,12 +91,15 @@ router.put('/:id/password', async (req, res, next) => {
   }
 });
 
-router['delete']('/:id', async (req, res, next) => {
+router['delete']('/:id', authorize([Role.Admin, Role.User]), async (req, res, next) => {
   try {
-    const { id } = req.params,
-      user = await models.User.findOne({
-        where: { id },
-      });
+    const { id } = req.params;
+    if (req.currentUser.role !== Role.Admin && req.currentUser.id !== id) {
+      return next(createError(401, 'Unauthorized'));
+    }
+    const user = await models.User.findOne({
+      where: { id },
+    });
     if (!user) {
       res.status(404);
       res.data = { success: false, message: `user with this id ${id} not exist` };

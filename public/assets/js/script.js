@@ -28,6 +28,7 @@ $(function () {
               <td>${task.status}</td>
               <td>${task.current}/${task.total}</td>
               <td>${task.convertDuration}</td>
+              <td>${task.creator_username}</td>
               <td>
                 ${task.status === 'cancelled' ? `
                 <Button class="btn btn-primary my-1 d-inline-block" type="button" onclick="startTask(${task.id})">

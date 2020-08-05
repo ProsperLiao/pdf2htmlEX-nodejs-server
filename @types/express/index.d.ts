@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/member-delimiter-style */
 declare namespace Express {
   export interface Request {
-    user?: any;
+    token?: any;
+    currentUser?: any;
   }
   export interface Response {
     data?: {

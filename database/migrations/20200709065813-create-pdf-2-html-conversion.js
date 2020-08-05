@@ -37,6 +37,12 @@ module.exports = {
       current: Sequelize.INTEGER,
       total: Sequelize.INTEGER,
       convertDuration: Sequelize.INTEGER,
+      creator_id:  {
+        type: Sequelize.INTEGER
+      },
+      creator_username: {
+        type: Sequelize.STRING
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
