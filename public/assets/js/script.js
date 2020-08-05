@@ -133,6 +133,7 @@ $(function () {
       $('#validatedCustomFile').val('');
       $('#validatedCustomFile').next('.custom-file-label').html('Choose file...');
       $('#upload_button').attr('disabled', false);
+      $('#upload_progress').text(``);
       var json = JSON.parse(xhr.responseText);
       alert(json.error.message);
     });

@@ -8,7 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf ./dist && tsc",
     "prod": "npm run build && node dist/app.js",
-    "db:migrate": "npx sequelize db:migrate"
+    "db:migrate": "npx sequelize db:migrate",
+    "db:seed": "npx sequelize db:seed:all"
   },
   "repository": {
     "type": "git",

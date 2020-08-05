@@ -11,10 +11,16 @@ import app from './app';
 /**
  * App Variables
  */
-if (!process.env.PORT || !process.env.JWT_TOKEN_SECRET || !process.env.JWT_REFRESH_TOKEN_SECRET) {
-  console.log('.env has no definition of PORT or JWT_TOKEN_SECRET or JWT_REFRESH_TOKEN_SECRET.');
+if (
+  !process.env.PORT ||
+  !process.env.JWT_TOKEN_SECRET ||
+  !process.env.JWT_REFRESH_TOKEN_SECRET ||
+  !process.env.SEED_ADMIN_PASSWORD
+) {
+  console.log('.env has no definition of PORT or JWT_TOKEN_SECRET or JWT_REFRESH_TOKEN_SECRET or SEED_ADMIN_PASSWORD.');
   process.exit(1);
 }
+
 const PORT = parseInt(process.env.PORT);
 /**
  * Server Activation

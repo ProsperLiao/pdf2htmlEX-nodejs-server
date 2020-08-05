@@ -13,6 +13,8 @@ const Joi = require('joi');
 
 const excludedUrls = [
     // public routes that don't require authentication
+    '/',
+    '/users',
     '/doc',
     '/api/login',
     '/api/token',
