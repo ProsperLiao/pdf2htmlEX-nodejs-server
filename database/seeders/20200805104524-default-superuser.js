@@ -1,5 +1,6 @@
 'use strict';
 
+var bcrypt = require('bcrypt');
 require('dotenv').config();
 
 module.exports = {
@@ -13,7 +14,7 @@ module.exports = {
      *   isBetaMember: false
      * }], {});
     */
-    const password =  process.env.SEED_ADMIN_PASSWORD || '';
+    const password = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || '', 10);
     return await queryInterface.bulkInsert('Users', [{
       username: 'admin',
       password,
