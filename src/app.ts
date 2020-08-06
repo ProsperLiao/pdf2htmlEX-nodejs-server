@@ -1,5 +1,5 @@
-import indexRouter from './routes';
 import conversionsRouter from './routes/conversions';
+import pageRouter from './routes/page';
 import usersRouter from './routes/users';
 import {
   authenticate,
@@ -70,7 +70,7 @@ class App {
   }
 
   private mountRoutes() {
-    this.express.use('/', indexRouter);
+    this.express.use('/', pageRouter);
     this.express.use('/api/conversions', authorize([Role.Admin, Role.User]), conversionsRouter);
     this.express.use('/api/users', usersRouter);
     this.express.post('/api/login', async (req, res, next) => {

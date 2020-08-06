@@ -16,6 +16,7 @@ const excludedUrls = [
     '/',
     '/users',
     '/doc',
+    '/login',
     '/api/login',
     '/api/token',
   ],

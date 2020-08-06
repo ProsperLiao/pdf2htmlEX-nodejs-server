@@ -15,4 +15,8 @@ router.get('/doc', (req, res, next) => {
   res.render('index', { page: 'doc' });
 });
 
+router.get('/login', (req, res, next) => {
+  res.render('index', { page: 'login' });
+});
+
 export = router;

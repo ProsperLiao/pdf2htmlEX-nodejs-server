@@ -1,6 +1,6 @@
 import models from '../models';
 import { Role } from '../utils';
-import { register, omitPassword, login, authorize } from '../utils/auth';
+import { register, omitPassword, authorize } from '../utils/auth';
 
 import bcrypt from 'bcrypt';
 import express from 'express';
