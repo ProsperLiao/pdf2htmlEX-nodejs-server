@@ -143,7 +143,7 @@ $(function () {
   startTask = function(taskid) {
     $.ajax({
       url: `/api/conversions/${taskid}/start`,
-      type: 'GET',
+      type: 'PUT',
       success: function (result) {
         getTasks();
       }

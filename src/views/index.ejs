@@ -5,7 +5,7 @@
 </head>
 <body>
 <%- include('partials/header', { page }) %>
-<div class="container-fluid bg-3">
+<div class="bg-3 position-absolute" style="top:60px; bottom: 0; left: 15px; right: 15px;">
         <% if (page === 'error') { %>
         <%- include('partials/error', { errno, url, errmsg }) %>
         <% } else if (page === 'users') { %>

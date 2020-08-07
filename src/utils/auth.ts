@@ -30,8 +30,8 @@ function validateUser(user: any) {
   const schema = Joi.object({
     username: Joi.string().min(3).max(50).required(),
     password: Joi.string().min(3).max(255).required(),
-    desc: Joi.string(),
-    role: Joi.string().valid('Admin', 'User'),
+    desc: Joi.string().allow('', null),
+    role: Joi.string().valid('Admin', 'User').allow('', null),
   });
   return schema.validate(user);
 }
@@ -178,7 +178,7 @@ async function register(userx: { username: string; password: string; desc?: stri
   }
   const pwd = await bcrypt.hash(userx.password, 10);
   user = await models.User.create(
-    { username: userx.username, password: pwd, desc: userx.desc, role: userx.role },
+    { username: userx.username, password: pwd, desc: userx.desc, role: userx.role || Role.User },
     { raw: true },
   );
 

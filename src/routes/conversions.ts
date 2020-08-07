@@ -5,7 +5,8 @@
     @typescript-eslint/no-unsafe-assignment,
     @typescript-eslint/no-unsafe-member-access,
     prefer-arrow/prefer-arrow-functions,
-    no-nested-ternary
+    no-nested-ternary,
+    complexity
  */
 import models from '../models';
 import pdf2HtmlQueue from '../queues/pdf2htmlQueue';
@@ -84,6 +85,27 @@ const router = express.Router(),
     },
   }).single('uploaded_file');
 
+/**
+ * @swagger
+ *
+ * /api/conversions:
+ *   get:
+ *     summary: Get the conversions task list
+ *     description: Get the conversions task list of those you have authorization, need Bearer Token in the Authorization header.
+ *     tags:
+ *       - conversions
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: return conversion task list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Conversion'
+ */
 router.get('/', async (req, res, next) => {
   // eslint-disable-next-line
   try {
@@ -99,6 +121,58 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/conversions:
+ *   post:
+ *     summary: Create a new conversion task
+ *     description: create a new conversion task
+ *     tags:
+ *       - conversions
+ *     consumes:
+ *       - application/json
+ *       - application/x-www-form-urlencoded
+ *     produces:
+ *       - application/json
+ *     requestBody:
+ *       description: upload the pdf file in multipart/form-data.
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               uploaded_file:
+ *                 type: string
+ *                 format: binary
+ *               split_page:
+ *                 type: boolean
+ *                 default: true
+ *             required:
+ *               - uploaded_file
+ *               - split_page
+ *     responses:
+ *       200:
+ *         description: return the conversion task just created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 task:
+ *                   $ref: '#/components/schemas/Conversion'
+ *                 id:
+ *                   type: integer
+ *                 href:
+ *                   type: object
+ *                   properties:
+ *                     checkStatus:
+ *                       type: string
+ *                 try_after_seconds:
+ *                   type: integer
+ */
 router.post('/', upload, async (req, res, next) => {
   if (!req.file) {
     res.send({
@@ -163,6 +237,46 @@ router.post('/', upload, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ *
+ * /api/conversions/{id}:
+ *   get:
+ *     summary: Get a specific conversions task
+ *     description: Get a specific conversions task when you have authorization, need Bearer Token in the Authorization header.
+ *     tags:
+ *       - conversions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The conversion task ID
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: return a specific conversion task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 task:
+ *                   $ref: '#/components/schemas/Conversion'
+ *                 id:
+ *                   type: integer
+ *                 href:
+ *                   type: object
+ *                   properties:
+ *                     checkStatus:
+ *                       type: string
+ *                 try_after_seconds:
+ *                   type: integer
+ */
 router.get('/:id', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
@@ -183,15 +297,16 @@ router.get('/:id', async (req, res, next) => {
 
   if (conversion.status !== 'done') {
     const message =
-      conversion.status === 'uploaded'
-        ? 'Please start the task first!'
-        : conversion.status === 'pending'
-        ? 'The converting task is pending for processing! Please try later.'
-        : conversion.status === 'converting'
-        ? 'The task is processing, please try later.'
-        : conversion.status === 'cancelled'
-        ? 'The task is cancelled.'
-        : '';
+        conversion.status === 'uploaded'
+          ? 'Please start the task first!'
+          : conversion.status === 'pending'
+          ? 'The converting task is pending for processing! Please try later.'
+          : conversion.status === 'converting'
+          ? 'The task is processing, please try later.'
+          : conversion.status === 'cancelled'
+          ? 'The task is cancelled.'
+          : '',
+      tryAfter = await getTryAfterSeconds();
     res.status(202).json({
       message,
       task: conversion,
@@ -199,13 +314,44 @@ router.get('/:id', async (req, res, next) => {
       href: {
         checkStatus: `/api/conversion/${conversion.id}`,
       },
-      try_after_seconds: await getTryAfterSeconds(),
+      try_after_seconds: conversion.status === 'pending' || conversion.status === 'converting' ? tryAfter : 0,
     });
     return;
   }
   res.json(conversion);
 });
 
+/**
+ * @swagger
+ *
+ * /api/conversions/{id}:
+ *   delete:
+ *     summary: Delete a specific conversion task
+ *     description: Delete a specific conversion task when you have authorization, need Bearer Token in the Authorization header.
+ *     tags:
+ *       - conversions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The conversion task ID
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: return a specific conversion task just deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 task:
+ *                   $ref: '#/components/schemas/Conversion'
+ */
 router['delete']('/:id', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
@@ -243,6 +389,43 @@ router['delete']('/:id', async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ *
+ * /api/conversions/{id}/cancel:
+ *   put:
+ *     summary: cancel a specific conversion task
+ *     description: cancel a specific conversion task when you have authorization, need Bearer Token in the Authorization header.
+ *     tags:
+ *       - conversions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The conversion task ID
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: return a specific conversion task just cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 task:
+ *                   $ref: '#/components/schemas/Conversion'
+ *                 href:
+ *                   type: object
+ *                   properties:
+ *                     checkStatus:
+ *                       type: string
+ *
+ */
 router.put('/:id/cancel', async (req, res, _next) => {
   const { id } = req.params;
   let conversion: any;
@@ -266,17 +449,61 @@ router.put('/:id/cancel', async (req, res, _next) => {
   if (count === 0) {
     res.status(400).send(`Fail to cancel. There is no pending task for this id ${id}.`);
   } else {
+    const c = await models.Pdf2HtmlConversion.findOne({
+      where: { id },
+    });
     res.json({
       message: 'Cancel Successfully!',
-      task: conversion,
+      task: c,
       href: {
-        checkStatus: `/api/conversion/${conversion.id}`,
+        checkStatus: `/api/conversions/${id}`,
       },
     });
   }
 });
 
-router.get('/:id/start', async (req, res, next) => {
+/**
+ * @swagger
+ *
+ * /api/conversions/{id}/start:
+ *   put:
+ *     summary: start a specific conversion task
+ *     description: start a specific conversion task when you have authorization, need Bearer Token in the Authorization header.
+ *     tags:
+ *       - conversions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The conversion task ID
+ *     produces:
+ *       - application/json
+ *     responses:
+ *       200:
+ *         description: return a specific conversion task just started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 task:
+ *                   $ref: '#/components/schemas/Conversion'
+ *                 id:
+ *                   type: integer
+ *                 href:
+ *                   type: object
+ *                   properties:
+ *                     checkStatus:
+ *                       type: string
+ *                 try_after_seconds:
+ *                   type: integer
+ *
+ */
+router.put('/:id/start', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
     where: { id },
@@ -326,6 +553,33 @@ router.get('/:id/start', async (req, res, next) => {
   });
 });
 
+/**
+ * @swagger
+ *
+ * /api/conversions/{id}/download:
+ *   get:
+ *     summary: download a specific conversion task's html zipfile
+ *     description: download a specific conversion task's html zipfile when you have authorization, need Bearer Token in the Authorization header.
+ *     tags:
+ *       - conversions
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The conversion task ID
+ *     produces:
+ *       - application/zip
+ *     responses:
+ *       200:
+ *         description: A zip file of the converted html from original pdf
+ *         content:
+ *           application/zip:
+ *             schema:
+ *               type: object
+ *               format: binary
+ */
 router.get('/:id/download', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
