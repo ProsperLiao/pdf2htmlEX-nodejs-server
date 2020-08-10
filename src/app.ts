@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/dot-notation */
+import { resumeConvertingJobs } from './queues/pdf2htmlQueue';
 import conversionsRouter from './routes/conversions';
 import pageRouter from './routes/page';
 import usersRouter from './routes/users';
@@ -84,6 +86,13 @@ class App {
     this.configure();
     this.mountRoutes();
     this.userHandlers();
+    resumeConvertingJobs()
+      .then((x: any) => {
+        console.log(x);
+      })
+      .catch((error: any) => {
+        console.log(error);
+      });
 
     // schedule to delete old tasks to save disk storage， every day at 2:30 am
     // eslint-disable-next-line @typescript-eslint/no-misused-promises

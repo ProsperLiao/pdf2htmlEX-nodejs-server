@@ -57,6 +57,14 @@ $(function () {
                 <Button class="btn btn-primary my-1 d-inline-block" type="button" onclick="getTasks()">
                   Refresh
                 </Button> 
+                <Button class="btn btn-warning my-1 d-inline-block" type="button" onclick="cancelTask(${task.id})">
+                  Cancel
+                </Button>
+                `
+                :  task.status === 'zipping' ? `
+                <Button class="btn btn-primary my-1 d-inline-block" type="button" onclick="getTasks()">
+                  Refresh
+                </Button> 
                 `
                 : `
                  <Button class="btn btn-primary my-1 d-inline-block" type="button" onclick="startTask(${task.id})">

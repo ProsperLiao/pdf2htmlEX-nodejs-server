@@ -31,12 +31,13 @@ module.exports = {
       },
       status: {
         type: Sequelize.ENUM,
-        values: ["pending", "done", "cancelled", "converting", "uploaded"],
+        values: ["pending", "done", "cancelled", "converting", "uploaded", "zipping"],
         defaultValue: "uploaded"
       },
       current: Sequelize.INTEGER,
       total: Sequelize.INTEGER,
       convertDuration: Sequelize.INTEGER,
+      job_id: Sequelize.INTEGER,
       creator_id:  {
         type: Sequelize.INTEGER
       },

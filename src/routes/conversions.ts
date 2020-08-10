@@ -9,12 +9,13 @@
     complexity
  */
 import models from '../models';
-import pdf2HtmlQueue from '../queues/pdf2htmlQueue';
+import { pdf2HtmlQueue, cancelJob, startConversion } from '../queues/pdf2htmlQueue';
 import { addToSyncConversion, removeFromSyncConversion, Role } from '../utils';
 
 import express, { NextFunction, Response } from 'express';
 import createError from 'http-errors';
 import multer from 'multer';
+import { Op } from 'sequelize';
 
 import fs from 'fs';
 import path from 'path';
@@ -369,7 +370,7 @@ router['delete']('/:id', async (req, res, next) => {
     }
   }
   const conversion = conversions[0];
-  if (conversion.status === 'converting') {
+  if (conversion.status === 'converting' || conversion.status === 'zipping') {
     next(createError(400, 'Task is converting, unable be deleted. Please try later.'));
     return;
   }
@@ -428,27 +429,42 @@ router['delete']('/:id', async (req, res, next) => {
  */
 router.put('/:id/cancel', async (req, res, _next) => {
   const { id } = req.params;
-  let conversion: any;
+  let where: any;
   if (req.currentUser.role !== Role.Admin) {
-    conversion = await models.Pdf2HtmlConversion.update(
-      { status: 'cancelled' },
-      {
-        where: { id, status: 'pending', creator_id: req.currentUser.id },
+    where = {
+      id,
+      status: {
+        [Op.or]: ['pending', 'converting'],
       },
-    );
+      creator_id: req.currentUser.id,
+    };
   } else {
-    conversion = await models.Pdf2HtmlConversion.update(
+    where = {
+      id,
+      status: {
+        [Op.or]: ['pending', 'converting'],
+      },
+    };
+  }
+
+  const conversion = await models.Pdf2HtmlConversion.findOne({
+      where,
+    }),
+    oldStatus = conversion.status,
+    update = await models.Pdf2HtmlConversion.update(
       { status: 'cancelled' },
       {
-        where: { id, status: 'pending' },
+        where,
       },
-    );
-  }
-  const count = conversion[0];
+    ),
+    count = update[0];
 
   if (count === 0) {
-    res.status(400).send(`Fail to cancel. There is no pending task for this id ${id}.`);
+    res.status(400).send(`Fail to cancel. There is no valid task for this id ${id}.`);
   } else {
+    if (oldStatus === 'converting') {
+      await cancelJob(conversion.job_id);
+    }
     const c = await models.Pdf2HtmlConversion.findOne({
       where: { id },
     });
@@ -525,20 +541,7 @@ router.put('/:id/start', async (req, res, next) => {
     return;
   }
   try {
-    await models.Pdf2HtmlConversion.update(
-      { status: 'pending' },
-      {
-        where: { id },
-      },
-    );
-    await pdf2HtmlQueue.add({
-      id,
-      path: conversion.filePath,
-      options: {
-        '--split-pages': conversion.splitPages,
-      },
-      originFileSize: conversion.originFileSize,
-    });
+    await startConversion(conversion);
   } catch (error) {
     next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
   }

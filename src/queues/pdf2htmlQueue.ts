@@ -15,7 +15,8 @@ import * as console from 'console';
 import fs from 'fs';
 import pathLib from 'path';
 
-const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
+const convertorMap: Map<number, Pdf2HtmlEx> = new Map<number, Pdf2HtmlEx>(),
+  pdf2HtmlQueue = new Queue('pdf2html transcoding'),
   convertPdf2Html = (
     src: string,
     options: AdditionalOptions,
@@ -24,22 +25,25 @@ const pdf2HtmlQueue = new Queue('pdf2html transcoding'),
     const fileName = src.replace(/\.[^/.]+$/, ''),
       basename = pathLib.basename(fileName),
       dir = fileName.slice(0, -basename.length),
-      dest = `${dir}${basename}`;
+      dest = `${dir}${basename}`,
+      pdf2HtmlEx = new Pdf2HtmlEx(src, dest, options);
 
-    return new Promise((resolve: (value?: { dest: string }) => void, reject) => {
-      const pdf2HtmlEx = new Pdf2HtmlEx(src, dest, options);
-      pdf2HtmlEx.progress(progressHandler);
-      pdf2HtmlEx
-        .convert()
-        .then(ret => {
-          console.log(ret);
-          resolve({ dest });
-        })
-        .catch(e => {
-          console.log(e);
-          reject(e);
-        });
-    });
+    return {
+      convertor: pdf2HtmlEx,
+      result: new Promise((resolve: (value?: { dest: string }) => void, reject) => {
+        pdf2HtmlEx.progress(progressHandler);
+        pdf2HtmlEx
+          .convert()
+          .then(ret => {
+            console.log(ret);
+            resolve({ dest });
+          })
+          .catch(e => {
+            console.log(e);
+            reject(e);
+          });
+      }),
+    };
   },
   zip = async (convertedPath: string, splitPages: boolean) => {
     const output = fs.createWriteStream(`${convertedPath}.zip`),
@@ -68,12 +72,17 @@ pdf2HtmlQueue.process(async job => {
         where: { id },
       }),
       conv = conversions[0];
-    if (conv.status === 'cancelled' || conv.status === 'done') {
+    if (
+      conv.status === 'cancelled' ||
+      conv.status === 'done' ||
+      conv.status === 'converting' ||
+      conv.status === 'zipping'
+    ) {
       return Promise.resolve();
     }
     const start = Date.now();
     await models.Pdf2HtmlConversion.update(
-      { status: 'converting' },
+      { status: 'converting', job_id: job.id },
       {
         where: { id, status: 'pending' },
       },
@@ -86,12 +95,25 @@ pdf2HtmlQueue.process(async job => {
           },
         );
       },
-      pathObj = await convertPdf2Html(path, options, progressHandler),
-      duration = (Date.now() - start) / 1000,
-      { dest } = pathObj,
+      { convertor, result } = convertPdf2Html(path, options, progressHandler);
+    if (typeof job.id === 'string') {
+      convertorMap.set(parseInt(job.id), convertor);
+    } else {
+      convertorMap.set(job.id, convertor);
+    }
+
+    const pathObj = await result;
+    await models.Pdf2HtmlConversion.update(
+      { status: 'zipping' },
+      {
+        where: { id },
+      },
+    );
+    const { dest } = pathObj,
       zipFilePath = await zip(dest, options['--split-pages']),
       originFileName = conv.originFileName.replace(/\.[^/.]+$/, ''),
       convertedFilePath = `${dest}${conv.splitPages ? `/${originFileName}.html` : '.html'}`,
+      duration = (Date.now() - start) / 1000,
       conversion = await models.Pdf2HtmlConversion.update(
         { convertedFilePath, status: 'done', convertDuration: duration, zipFilePath },
         {
@@ -106,4 +128,45 @@ pdf2HtmlQueue.process(async job => {
   }
 });
 
-export = pdf2HtmlQueue;
+const startConversion = async (conversion: any) => {
+    await models.Pdf2HtmlConversion.update(
+      { status: 'pending' },
+      {
+        where: { id: conversion.id },
+      },
+    );
+    await pdf2HtmlQueue.add({
+      id: conversion.id,
+      path: conversion.filePath,
+      options: {
+        '--split-pages': conversion.splitPages,
+      },
+      originFileSize: conversion.originFileSize,
+    });
+  },
+  cancelJob = async (jobId: number) => {
+    const job = await pdf2HtmlQueue.getJob(jobId);
+    await job?.releaseLock();
+    await job?.remove();
+    const convertor = convertorMap.get(jobId);
+    convertor?.cancel();
+    convertorMap.delete(jobId);
+  },
+  resumeConvertingJobs = async () => {
+    const isReady = await pdf2HtmlQueue.isReady();
+    if (isReady) {
+      const conversions = await models.Pdf2HtmlConversion.findAll({
+        where: { status: 'converting' },
+      });
+      await Promise.all(
+        conversions.map(async (conversion: any) => {
+          await startConversion(conversion);
+        }),
+      );
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      setTimeout(resumeConvertingJobs, 1000);
+    }
+  };
+
+export { startConversion, cancelJob, resumeConvertingJobs, pdf2HtmlQueue };

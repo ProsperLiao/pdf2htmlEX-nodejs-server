@@ -2,7 +2,7 @@
      @typescript-eslint/member-delimiter-style,
      @typescript-eslint/explicit-module-boundary-types
 */
-import { spawn } from 'child_process';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import pathLib from 'path';
 
 // 允许自定义设置的转换参数，由post 上传pdf文件时提供
@@ -25,6 +25,8 @@ class Pdf2HtmlEx {
   private options: Pdf2HtmlOptions = { bin: '', additional: [] };
 
   private readonly customAdditional: AdditionalOptions;
+
+  private child?: ChildProcessWithoutNullStreams;
 
   constructor(src: string, outfile: string, additional: AdditionalOptions) {
     this.customAdditional = additional;
@@ -72,13 +74,13 @@ class Pdf2HtmlEx {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const child = spawn(this.options.bin, this.options.additional);
+      this.child = spawn(this.options.bin, this.options.additional);
 
-      child.stdout.on('data', data => {
+      this.child.stdout.on('data', data => {
         // pdf2htmlEX writes out to stderr
         console.log('child stdout: ', data.toString());
       });
-      child.stderr.on('data', data => {
+      this.child.stderr.on('data', data => {
         console.log(data.toString());
         error += data.toString();
         if (this.options.progress && typeof this.options.progress === 'function') {
@@ -99,14 +101,14 @@ class Pdf2HtmlEx {
         }
       });
 
-      child.on('error', err => {
+      this.child.on('error', err => {
         console.log('child error: ', err);
         const e = new Error('Please install pdf2htmlEX from https://github.com/coolwanglu/pdf2htmlEX');
         e.name = 'ExecutableError';
         reject(error);
       });
 
-      child.on('close', code => {
+      this.child.on('close', code => {
         console.log('close');
         if (code === 0) {
           resolve(error);
@@ -125,6 +127,10 @@ class Pdf2HtmlEx {
 
   progress(callback: (ret: Pdf2HtmlProgressObj) => void) {
     this.options.progress = callback;
+  }
+
+  cancel() {
+    this.child?.kill('SIGINT');
   }
 
   private _preset(preset: string) {
