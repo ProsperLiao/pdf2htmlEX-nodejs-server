@@ -88,10 +88,10 @@ class App {
     this.userHandlers();
     resumeConvertingJobs()
       .then((x: any) => {
-        console.log(x);
+        console.log('Done resuming jobs!');
       })
       .catch((error: any) => {
-        console.log(error);
+        console.log('Error on resuming job: ', error);
       });
 
     // schedule to delete old tasks to save disk storage， every day at 2:30 am
