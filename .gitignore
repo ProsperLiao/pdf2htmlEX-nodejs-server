@@ -9,8 +9,8 @@ pack.zip
 /out-tsc
 # Only exists if Bazel was run
 /bazel-out
-database/*.db
-public/pdf2html/**/*
+src/database/*.db
+src/public/pdf2html/**/*
 
 # dependencies
 /node_modules
@@ -46,6 +46,7 @@ yarn-error.log
 testem.log
 /typings
 .env
+.env.prod
 src/environments/environment.ts
 
 # System Files

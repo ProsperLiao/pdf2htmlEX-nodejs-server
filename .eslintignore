@@ -5,9 +5,9 @@ e2e/
 package-lock.json
 **/*.spec.ts
 .eslintrc.js
-database/migrations/*
-database/seeders/*
-public/
+src/database/migrations/*
+src/database/seeders/*
+src/public/
 
 ### Example user template template
 ### Example user template
@@ -91,6 +91,7 @@ web_modules/
 # dotenv environment variables file
 .env
 .env.test
+.env.prod
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

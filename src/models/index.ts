@@ -5,9 +5,9 @@ import path from 'path';
 
 const basename = path.basename(__filename),
   env = process.env.NODE_ENV || 'development',
-  config = require(path.resolve('database/config/config.json'))[env],
+  config = require(path.resolve(__dirname, '../database/config/config.json'))[env],
   db: any = {},
-  sequelize = new Sequelize(config);
+  sequelize = new Sequelize({ ...config, storage: path.resolve(__dirname, '../database', config.storage) });
 
 fs.readdirSync(__dirname)
   .filter(file => {

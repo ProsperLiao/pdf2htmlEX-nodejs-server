@@ -2,14 +2,19 @@
   "name": "pdf2htmlex-nodejs-server",
   "version": "1.0.0",
   "description": "A nodejs server for utilizing pdf2htmlEX to transcode pdf to html.",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon --watch 'src/' -e ts --exec 'ts-node' .",
+    "tsc": "tsc",
+    "clean": "rimraf dist/*",
+    "copy-assets": "ts-node tools/copyAssets",
+    "build": "npm-run-all clean tsc copy-assets db_init",
+    "db_init:dev": "cd src/database && sequelize db:migrate && sequelize db:seed:all",
+    "db_init": "export NODE_ENV=production && cd dist/database && sequelize db:migrate && sequelize db:seed:all",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rimraf ./dist && tsc",
-    "prod": "npm run build && node dist/app.js",
-    "db:migrate": "npx sequelize db:migrate",
-    "db:seed": "npx sequelize db:seed:all"
+    "dev": "nodemon --watch src -e ts,ejs --exec ts-node -r dotenv/config src/index.ts",
+    "debug": "nodemon --verbose --watch src -e ts --exec node -r dotenv/config --inspect-brk -r ts-node/register src/index.ts",
+    "prestart": "npm run build",
+    "start": "node -r dotenv/config . dotenv_config_path=.env.prod"
   },
   "repository": {
     "type": "git",
@@ -21,7 +26,7 @@
     "server",
     "dockerize"
   ],
-  "author": "Prosper Liao",
+  "author": "Hongxing Liao",
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "archiver": "^4.0.2",
@@ -41,6 +46,7 @@
     "multer": "^1.4.2",
     "node-cron": "^2.0.3",
     "sequelize": "^6.3.0",
+    "shelljs": "^0.8.4",
     "sqlite3": "^5.0.0",
     "swagger-jsdoc": "^4.0.0",
     "swagger-ui-express": "^4.1.4"
@@ -60,6 +66,7 @@
     "@types/morgan": "^1.9.1",
     "@types/multer": "^1.4.3",
     "@types/node-cron": "^2.0.3",
+    "@types/shelljs": "^0.8.8",
     "@types/swagger-jsdoc": "^3.0.2",
     "@types/swagger-ui-express": "^4.1.2",
     "@typescript-eslint/eslint-plugin": "^3.6.0",
@@ -75,6 +82,7 @@
     "husky": "^4.2.5",
     "lint-staged": "^10.2.11",
     "nodemon": "^2.0.4",
+    "npm-run-all": "^4.1.5",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
     "sequelize-cli": "^6.2.0",

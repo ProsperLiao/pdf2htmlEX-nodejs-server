@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/dot-notation */
+import { transformPath } from './util';
+
 import models from '../models';
 
 import { Response } from 'express';
@@ -14,13 +16,14 @@ export async function responseToSyncConversion(id: number, zipFilePath?: string)
   if (zipFilePath) {
     const conversions = await models.Pdf2HtmlConversion.findAll({
       where: { id },
+      raw: true,
     });
     if (conversions.length === 0) {
       res?.status(500).send('Internal Error!');
       return;
     }
     const conversion = conversions[0];
-    res?.json(conversion);
+    res?.json(transformPath(conversion));
   } else {
     res?.status(500).send('Internal Error!');
   }

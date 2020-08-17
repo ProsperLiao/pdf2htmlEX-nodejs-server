@@ -113,8 +113,8 @@ class App {
     this.express.use(express.json());
     this.express.use(express.urlencoded({ extended: true }));
     this.express.use(cookieParser());
-    this.express.use('/public', express['static'](path.resolve(__dirname, isDev ? '../public' : './public')));
-    this.express.use(express['static'](path.resolve(__dirname, isDev ? '../public/assets' : './public/assets')));
+    this.express.use('/pdf2html', express['static'](path.resolve(__dirname, 'public', 'pdf2html')));
+    this.express.use(express['static'](path.resolve(__dirname, 'public/assets')));
     this.express.use(logger('dev'));
     /** setup swagger-ui-express, must before use authenticate() **/
     this.express.use(

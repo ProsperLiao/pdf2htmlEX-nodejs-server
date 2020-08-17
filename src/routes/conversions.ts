@@ -10,7 +10,7 @@
  */
 import models from '../models';
 import { pdf2HtmlQueue, cancelJob, startConversion } from '../queues/pdf2htmlQueue';
-import { addToSyncConversion, removeFromSyncConversion, Role } from '../utils';
+import { addToSyncConversion, removeFromSyncConversion, Role, transformPath } from '../utils';
 
 import express, { NextFunction, Response } from 'express';
 import createError from 'http-errors';
@@ -63,7 +63,10 @@ const router = express.Router(),
   // setup multer
   storage = multer.diskStorage({
     destination(req, file, _cb) {
-      const dir = `./public/pdf2html/${new Date().toISOString()}_${Math.round(Math.random() * 1e9)}`;
+      const dir = path.resolve(
+        __dirname,
+        `../public/pdf2html/${new Date().toISOString()}_${Math.round(Math.random() * 1e9)}`,
+      );
       fs.mkdir(dir, error => {
         _cb(error, dir);
       });
@@ -111,11 +114,14 @@ router.get('/', async (req, res, next) => {
   // eslint-disable-next-line
   try {
     if (req.currentUser.role === Role.Admin) {
-      const conversions = await models.Pdf2HtmlConversion.findAll();
-      res.json(conversions);
+      const conversions = await models.Pdf2HtmlConversion.findAll({ raw: true });
+      res.json(conversions.map(transformPath));
     } else {
-      const conversions = await models.Pdf2HtmlConversion.findAll({ where: { creator_id: req.currentUser.id } });
-      res.json(conversions);
+      const conversions = await models.Pdf2HtmlConversion.findAll({
+        where: { creator_id: req.currentUser.id },
+        raw: true,
+      });
+      res.json(conversions.map(transformPath));
     }
   } catch (error) {
     next(createError(500, error.message));
@@ -186,7 +192,7 @@ router.post('/', upload, async (req, res, next) => {
       ...req.body,
       originFileName: req.file.originalname,
       originFileSize: req.file.size,
-      filePath: `./${req.file.path}`,
+      filePath: `${req.file.path}`,
       splitPages: !(splitPages !== undefined && (splitPages === '0' || splitPages === 'false')),
       creator_id: req.currentUser.id,
       creator_username: req.currentUser.username,
@@ -214,10 +220,13 @@ router.post('/', upload, async (req, res, next) => {
         },
         originFileSize: conversion.originFileSize,
       });
-
+      const c = await models.Pdf2HtmlConversion.findOne({
+        where: { id },
+        raw: true,
+      });
       res.status(202).json({
         message: 'The pdf file has been uploaded, and converting task is pending for the processing queue!',
-        task: conversion,
+        task: transformPath(c),
         id,
         href: {
           checkStatus: `/api/conversion/${conversion.id}`,
@@ -225,10 +234,14 @@ router.post('/', upload, async (req, res, next) => {
         try_after_seconds: await getTryAfterSeconds(),
       });
     } catch (error) {
+      const c = await models.Pdf2HtmlConversion.findOne({
+        where: { id },
+        raw: true,
+      });
       // If fail to start the task, client need to start it manually.
       res.status(201).json({
         message: 'Upload Successfully! Please start the task manually!',
-        task: conversion,
+        task: transformPath(c),
         href: {
           start: `/api/conversion/${conversion.id}/start`,
           checkStatus: `/api/conversion/${conversion.id}`,
@@ -282,6 +295,7 @@ router.get('/:id', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
     where: { id },
+    raw: true,
   });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist'));
@@ -310,7 +324,7 @@ router.get('/:id', async (req, res, next) => {
       tryAfter = await getTryAfterSeconds();
     res.status(202).json({
       message,
-      task: conversion,
+      task: transformPath(conversion),
       id,
       href: {
         checkStatus: `/api/conversion/${conversion.id}`,
@@ -319,7 +333,7 @@ router.get('/:id', async (req, res, next) => {
     });
     return;
   }
-  res.json(conversion);
+  res.json(transformPath(conversion));
 });
 
 /**
@@ -375,7 +389,7 @@ router['delete']('/:id', async (req, res, next) => {
     return;
   }
   try {
-    await fs.promises.rmdir(`${path.dirname(conversion.filePath)}`, { recursive: true });
+    await fs.promises.rmdir(path.dirname(conversion.filePath), { recursive: true });
     // if (conversion.convertedFilePath) {
     //   await fs.promises.unlink(`${conversion.convertedFilePath}`);
     // }
@@ -386,7 +400,7 @@ router['delete']('/:id', async (req, res, next) => {
   await conversion.destroy();
   res.json({
     message: 'Delete Successfully!',
-    task: conversion,
+    task: transformPath(conversion.dataValues),
   });
 });
 
@@ -467,10 +481,11 @@ router.put('/:id/cancel', async (req, res, _next) => {
     }
     const c = await models.Pdf2HtmlConversion.findOne({
       where: { id },
+      raw: true,
     });
     res.json({
       message: 'Cancel Successfully!',
-      task: c,
+      task: transformPath(c),
       href: {
         checkStatus: `/api/conversions/${id}`,
       },
@@ -523,6 +538,7 @@ router.put('/:id/start', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
     where: { id },
+    raw: true,
   });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist'));
@@ -545,9 +561,13 @@ router.put('/:id/start', async (req, res, next) => {
   } catch (error) {
     next(createError(500, 'Failed to add the task of transcoding pdf to html.'));
   }
+  const newConversion = await models.Pdf2HtmlConversion.findOne({
+    where: { id },
+    raw: true,
+  });
   res.status(202).json({
     message: 'The converting task has been started successfully for processing!',
-    task: conversion,
+    task: transformPath(newConversion),
     id,
     href: {
       checkStatus: `/api/conversion/${conversion.id}`,
@@ -587,6 +607,7 @@ router.get('/:id/download', async (req, res, next) => {
   const { id } = req.params;
   let conversions = await models.Pdf2HtmlConversion.findAll({
     where: { id },
+    raw: true,
   });
   if (conversions.length === 0) {
     next(createError(400, 'Task is not exist'));
@@ -613,7 +634,7 @@ router.get('/:id/download', async (req, res, next) => {
         : '';
     res.status(202).json({
       message,
-      task: conversion,
+      task: transformPath(conversion),
       id,
       href: {
         checkStatus: `/api/conversion/${conversion.id}`,

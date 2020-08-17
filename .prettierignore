@@ -3,6 +3,7 @@ migrations/
 e2e/
 package-lock.json
 
+
 ### Node template
 # Logs
 logs

@@ -1,7 +1,8 @@
 'use strict';
 
-var bcrypt = require('bcrypt');
-require('dotenv').config();
+const bcrypt = require('bcrypt');
+const path = require('path');
+require('dotenv').config({ path: path.resolve('../../.env') });
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
@@ -13,16 +14,18 @@ module.exports = {
      *   name: 'John Doe',
      *   isBetaMember: false
      * }], {});
-    */
+     */
     const password = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || '', 10);
-    return await queryInterface.bulkInsert('Users', [{
-      username: 'admin',
-      password,
-      desc: 'default admin account',
-      role: 'Admin',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }]);
+    return await queryInterface.bulkInsert('Users', [
+      {
+        username: 'admin',
+        password,
+        desc: 'default admin account',
+        role: 'Admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
   },
 
   down: async (queryInterface, Sequelize) => {
@@ -33,5 +36,5 @@ module.exports = {
      * await queryInterface.bulkDelete('People', null, {});
      */
     return await queryInterface.bulkDelete('Users', { username: 'admin' }, {});
-  }
+  },
 };

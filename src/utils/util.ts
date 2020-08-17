@@ -40,7 +40,7 @@ export async function cleanTasks() {
     }
   }
 
-  const dir = './public/pdf2html';
+  const dir = path.resolve(__dirname, '../public/pdf2html');
   // Loop through all the files in the public/pdf2html directory
   fs.readdir(dir, async (_err, files) => {
     if (_err) {
@@ -62,3 +62,13 @@ export async function cleanTasks() {
     }
   });
 }
+
+export const transformPath = (conversion: { filePath?: string; convertedFilePath?: string; zipFilePath?: string }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return {
+    ...conversion,
+    filePath: conversion.filePath?.replace(path.resolve(__dirname, '../public'), ''),
+    convertedFilePath: conversion.convertedFilePath?.replace(path.resolve(__dirname, '../public'), ''),
+    zipFilePath: conversion.zipFilePath?.replace(path.resolve(__dirname, '../public'), ''),
+  };
+};
