@@ -49,6 +49,8 @@ testem.log
 .env
 src/environments/environment.ts
 src/database/dbs/*
+# exception to the rule
+!.gitkeep
 
 # System Files
 .DS_Store
