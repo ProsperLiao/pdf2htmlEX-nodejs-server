@@ -1,0 +1,17 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+
+# add git-ignore syntax here of things you don't want copied into docker image
+.git
+.dockerignore
+Dockerfile
+docker-compose.yml
+node_modules
+dist/**/*

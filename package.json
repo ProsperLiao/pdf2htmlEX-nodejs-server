@@ -7,14 +7,14 @@
     "tsc": "tsc",
     "clean": "rimraf dist/*",
     "copy-assets": "ts-node tools/copyAssets",
-    "build": "npm-run-all clean tsc copy-assets db_init",
+    "build": "npm-run-all clean tsc copy-assets",
     "db_init:dev": "cd src/database && sequelize db:migrate && sequelize db:seed:all",
     "db_init": "export NODE_ENV=production && cd dist/database && sequelize db:migrate && sequelize db:seed:all",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --watch src -e ts,ejs --exec ts-node -r dotenv/config src/index.ts",
-    "debug": "nodemon --verbose --watch src -e ts --exec node -r dotenv/config --inspect-brk -r ts-node/register src/index.ts",
+    "dev": "nodemon --watch src -e ts,ejs --exec ts-node -r dotenv/config src/index.ts dotenv_config_path=.env.dev",
+    "debug": "nodemon --verbose --watch src -e ts --exec node -r dotenv/config --inspect-brk -r ts-node/register src/index.ts dotenv_config_path=.env.dev",
     "prestart": "npm run build",
-    "start": "node -r dotenv/config . dotenv_config_path=.env.prod"
+    "start": "node -r dotenv/config . dotenv_config_path=.env"
   },
   "repository": {
     "type": "git",

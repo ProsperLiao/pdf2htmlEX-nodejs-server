@@ -1,0 +1,29 @@
+version: '3.5'
+
+services:
+  pdf2htmlex-nodejs-server:
+    env_file:
+      - .env
+    container_name: pdf2html_server
+    build:
+      context: .
+    ports:
+      - ${PUBLISH_PORT}:${PORT}
+    volumes:
+      - ~/desktop/docker_volumes/pdf2htmlex-nodejs-server/dbs:/usr/src/app/dist/database/dbs
+      - ~/desktop/docker_volumes/pdf2htmlex-nodejs-server/pdf2html:/usr/src/app/dist/public/pdf2html
+    depends_on:
+      - redis
+
+  redis:
+    container_name: ${REDIS_CONNECTION}
+    restart: always
+    image: redis:6.0.6-alpine
+
+networks:
+  default:
+    # Use a custom driver
+    driver: bridge
+
+
+

@@ -16,7 +16,9 @@ import fs from 'fs';
 import pathLib from 'path';
 
 const convertorMap: Map<number, Pdf2HtmlEx> = new Map<number, Pdf2HtmlEx>(),
-  pdf2HtmlQueue = new Queue('pdf2html transcoding'),
+  pdf2HtmlQueue = new Queue('pdf2html transcoding', {
+    redis: { port: parseInt(process.env.REDIS_PORT || '6379'), host: process.env.REDIS_CONNECTION },
+  }),
   convertPdf2Html = (
     src: string,
     options: AdditionalOptions,
