@@ -1,14 +1,39 @@
-#pdf转换为html
+#pdf2htmlEX-nodejs-server 
 
 遵从开源协议 GPLv3+
 
-- 本工具使用 pdf2htmlEX [https://github.com/coolwanglu/pdf2htmlEX] 作为pdf 转换至 html的工具。
-- 并对生成的 html 的功能样式，做了扩展.
-- 使用express, node.js实现一个服务端程序，用以接受 post pdf文件的请求，在服务端生成html，并返回.
-- docker 化。 
+- 使用 pdf2htmlEX [https://github.com/coolwanglu/pdf2htmlEX] 作为pdf 转换至 html的工具。
+- 对 pdf2htmlEX 做了扩展，增加了生成的 html 的功能及样式.
+- 使用express, node.js实现一个服务端程序，用以接受 post pdf文件的网络请求，在服务端生成html，并返回。增加了用户创建， 用户登录授权, 资源鉴权的功能.
+- 为生产环境布署，实现了docker化.。 
+
+##使用
+#### 开发：
+- 先根据.env.sample 生成自己的 .env.dev
+```
+// 第一次运行请初始化数据库
+sh ./src/database/init_db.sh
+```
+```
+// 运行开发模式
+npm run dev
+```
+```
+// 或调试模式
+npm run debug
+```
+
+#### 生产:
+- 先根据.env.sample 生成自己的 .env 
+- 在docker host上运行
+```
+docker-compose up -d
+```
+
+
 
 ## 注意！
-- 使用了--split-pages， 生成的html文件，使用xhr异步加载页面. 因浏览器CORS 的安全限制，生成的html只能用于服务端提供，下载到本地无法正常使用， 除非转换时禁止分页异步加载。
+- 使用了--split-pages， 生成的html文件是多文件的，使用xhr异步加载页面. 因浏览器CORS 的安全限制，生成的html只能用于服务端提供，下载到本地无法正常使用， 除非转换时禁止分页异步加载只生成单一文件。
  
 ##pdf转换为html5方案 - pdf2htmlEX
 ###现状
@@ -72,10 +97,13 @@ pdf2htmlEX_data 为pdf转换为 html 时使用的数据文件，包括html模板
 因为公司原有产品的系统中存在下载功能，且PC, ios, android 等 对本地的pdf的支持还不错。及转换后生成的html文件不支持本地浏览（除非不使用分页异步加载）。且原文件，可能是ppt 或 word 先转换为pdf, 再二次转换为html的. 建议使用时，服务端既保存原文件，也保存转换后的html文件, 根据项目需要，下载时提供原文件，在线浏览时提供html文件。
 
 #  node.js server
-
+- pdf 转换为 html 的任务管理页面。
+- 用户创建及管理页面。
+- 用户登录，资源鉴权的功能。
+- 利用 bull 和 redis 实现消息队列，进行转换任务调度的功能。
 
 #  dockerize
-
+- 使用Dockerfile, 及docker-compose.yml 实现生产环境容器化的流程。
 
 #参考文档
 - https://www.itread01.com/content/1548397099.html
