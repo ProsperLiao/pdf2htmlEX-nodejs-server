@@ -8,7 +8,7 @@
 - 为生产环境布署，实现了docker化.。 
 
 ##使用
-#### 开发：
+### 开发：
 - 先根据.env.sample 生成自己的 .env.dev
 ```
 // 第一次运行请初始化数据库
@@ -22,6 +22,8 @@ npm run dev
 // 或调试模式
 npm run debug
 ```
+注意： 需要自行启动redis服务，在 localhost:6379, 
+可选择使用此方式启动  docker run -d --name redis -p 6379:6379 redis:6.0.6-alpine 
 
 #### 生产:
 - 先根据.env.sample 生成自己的 .env 

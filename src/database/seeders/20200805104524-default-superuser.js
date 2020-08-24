@@ -2,7 +2,11 @@
 
 const bcrypt = require('bcrypt');
 const path = require('path');
-require('dotenv').config({ path: path.resolve('../../.env') });
+if (process.env.NODE_ENV && process.env.NODE_ENV === 'production') {
+  require('dotenv').config({path: path.resolve('../../.env')});
+} else {
+  require('dotenv').config({path: path.resolve('../../.env.dev')});
+}
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
