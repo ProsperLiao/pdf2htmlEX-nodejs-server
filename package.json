@@ -13,8 +13,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --watch src -e ts,ejs --exec ts-node -r dotenv/config src/index.ts dotenv_config_path=.env.dev",
     "debug": "nodemon --verbose --watch src -e ts --exec node -r dotenv/config --inspect-brk -r ts-node/register src/index.ts dotenv_config_path=.env.dev",
-    "prestart": "npm run build",
-    "start": "node -r dotenv/config . dotenv_config_path=.env"
+    "prestart": "npm-run-all build db_init",
+    "start": "export NODE_ENV=production && node -r dotenv/config . dotenv_config_path=.env"
   },
   "repository": {
     "type": "git",
