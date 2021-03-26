@@ -59,11 +59,19 @@ const convertorMap: Map<number, Pdf2HtmlEx> = new Map<number, Pdf2HtmlEx>(),
     });
     archive.pipe(output);
     if (splitPages) {
-      archive.directory(convertedPath, pathLib.basename(convertedPath));
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      fs.readdir(convertedPath, async (err, files) => {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        files.forEach(file => {
+          archive.file(`${convertedPath}/${file}`, { name: file });
+        });
+        await archive.finalize();
+      });
     } else {
       archive.file(`${convertedPath}.html`, { name: `${pathLib.basename(convertedPath)}.html` });
+      await archive.finalize();
     }
-    await archive.finalize();
+
     return `${convertedPath}.zip`;
   };
 
@@ -112,18 +120,45 @@ pdf2HtmlQueue.process(async job => {
       },
     );
     const { dest } = pathObj,
-      zipFilePath = await zip(dest, options['--split-pages']),
       originFileName = conv.originFileName.replace(/\.[^/.]+$/, ''),
-      convertedFilePath = `${dest}${conv.splitPages ? `/${originFileName}.html` : '.html'}`,
-      duration = (Date.now() - start) / 1000,
-      conversion = await models.Pdf2HtmlConversion.update(
-        { convertedFilePath, status: 'done', convertDuration: duration, zipFilePath },
-        {
-          where: { id },
-        },
-      );
-    await responseToSyncConversion(id, zipFilePath);
-    await conversion;
+      convertedFilePath = `${dest}${conv.splitPages ? `/${originFileName}.html` : '.html'}`;
+
+    // 写入 scorm.xml
+    if (conv.splitPages) {
+      const content = `<?xml version='1.0' encoding='utf-8'?>
+<scorm baseurl=''>
+  <title>${originFileName}</title>
+  <item id='1' type='text/html' href='index.html' title='' />
+</scorm>
+`;
+
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      fs.writeFile(`${dest}/scorm.xml`, content, async err => {
+        if (err) throw err;
+        fs.renameSync(convertedFilePath, `${dest}/index.html`);
+        const zipFilePath = await zip(dest, options['--split-pages']),
+          duration = (Date.now() - start) / 1000,
+          conversion = await models.Pdf2HtmlConversion.update(
+            { convertedFilePath: `${dest}/index.html`, status: 'done', convertDuration: duration, zipFilePath },
+            {
+              where: { id },
+            },
+          );
+        await responseToSyncConversion(id, zipFilePath);
+        await conversion;
+      });
+    } else {
+      const zipFilePath = await zip(dest, options['--split-pages']),
+        duration = (Date.now() - start) / 1000,
+        conversion = await models.Pdf2HtmlConversion.update(
+          { convertedFilePath, status: 'done', convertDuration: duration, zipFilePath },
+          {
+            where: { id },
+          },
+        );
+      await responseToSyncConversion(id, zipFilePath);
+      await conversion;
+    }
   } catch (error) {
     await responseToSyncConversion(id);
     await Promise.reject(error);

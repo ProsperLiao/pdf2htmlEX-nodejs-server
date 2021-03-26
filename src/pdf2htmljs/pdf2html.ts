@@ -32,7 +32,14 @@ class Pdf2HtmlEx {
     this.customAdditional = additional;
     this.options.additional.push(src);
     if (typeof outfile !== 'undefined' && outfile !== null) {
-      this.options.additional.push(`${outfile}.html`);
+      if (this.customAdditional && this.customAdditional['--split-pages']) {
+        this.options.additional.push(`${outfile}.html`);
+      } else {
+        const fileName = src.replace(/\.[^/.]+$/, ''),
+          basename = pathLib.basename(fileName),
+          dir = fileName.slice(0, -basename.length);
+        this.options.additional.push('--dest-dir', `${dir}`);
+      }
     }
   }
 
